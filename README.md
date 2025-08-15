@@ -1,14 +1,20 @@
 # Portus: NL queries for `pandas`
 
-## `sqlalchemy` + `pandas`
+## Setup connection
 
 ```python
-import pandas as pd
 from sqlalchemy import create_engine
 
 engine = create_engine(
     "postgresql://readonly_role:>sU9y95R(e4m@ep-young-breeze-a5cq8xns.us-east-2.aws.neon.tech/netflix"
 )
+```
+
+## SQL query with `sqlalchemy` + `pandas`
+
+```python
+import pandas
+
 df = pd.read_sql(
     """
     SELECT *
@@ -20,7 +26,7 @@ df = pd.read_sql(
 print(df)
 ```
 
-## `sqlalchemy` + `pandas` + `portus`
+## NL query with `sqlalchemy` + `pandas` + `portus`
 
 ```python
 import portus
