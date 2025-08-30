@@ -1,15 +1,13 @@
 import json
 import importlib
 import logging
-from typing import List, Optional, TypedDict
+from typing import List, TypedDict
 
 import duckdb
-import pandas as pd
 from pandas import DataFrame
 from langchain_core.messages import HumanMessage
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 
 from portus.data_executor import DataExecutor, DataResult
@@ -111,6 +109,7 @@ class SimpleDuckDBAgenticExecutor(DataExecutor):
     """
 
         # LangGraph prebuilt ReAct agent
+        # noinspection PyTypeChecker
         agent = create_react_agent(
             llm,
             tools=tools,
@@ -120,6 +119,7 @@ class SimpleDuckDBAgenticExecutor(DataExecutor):
 
         # Convenience runner that returns explanation + DataFrame
         def ask(question: str) -> AgentResponse:
+            # noinspection PyTypeChecker
             state = agent.invoke({"messages": [HumanMessage(content=question)]})
             return state["structured_response"]
 
