@@ -1,5 +1,6 @@
 import json
 import importlib
+import logging
 from typing import List, Optional, TypedDict
 
 import duckdb
@@ -13,6 +14,8 @@ from langgraph.prebuilt import create_react_agent
 
 from portus.data_executor import DataExecutor, DataResult
 
+logger = logging.getLogger(__name__)
+
 
 class AgentResponse(TypedDict):
     sql: str
@@ -25,7 +28,7 @@ class SimpleDuckDBAgenticExecutor(DataExecutor):
         rows = con.execute("""
                            SELECT table_catalog, table_schema, table_name
                            FROM information_schema.tables
-                           WHERE table_type = 'BASE TABLE'
+                           WHERE table_type IN ('BASE TABLE', 'VIEW')
                              AND table_schema NOT IN ('pg_catalog', 'pg_toast', 'information_schema')
                            ORDER BY table_schema, table_name
                            """).fetchall()
@@ -167,5 +170,6 @@ class SimpleDuckDBAgenticExecutor(DataExecutor):
 
         agent, ask = self.__make_react_duckdb_agent(con, llm)
         answer: AgentResponse = ask(query)
+        logger.info("Generated query: %s", answer["sql"])
         df = con.execute(f"SELECT * FROM ({answer["sql"]}) t LIMIT {limit}").df()
         return DataResult(answer["explanation"], df, {})

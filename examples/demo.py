@@ -21,4 +21,11 @@ llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 session = portus.create_session(llm)
 session.add_db(engine)
 
-print(session.ask("list all german shows").df())
+data = {
+    "show_id": ["s706", "s1032", "s1253"],
+    "cancelled": [True, True, False]
+}
+df = pd.DataFrame(data)
+session.add_df(df)
+
+print(session.ask("list directors of cancelled shows").df())
