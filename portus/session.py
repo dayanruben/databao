@@ -5,12 +5,14 @@ from typing import Optional
 from pandas import DataFrame
 
 from portus.result import Result, LazyResult
+from portus.data_executor import DataExecutor
+from portus.duckdb.agent import SimpleDuckDBAgenticExecutor
 from langchain_core.language_models.chat_models import BaseChatModel
 
 
 class Session(ABC):
     @abc.abstractmethod
-    def add_db(self, engine: "Engine", *, name: Optional[str] = None) -> None:
+    def add_db(self, connection: "Engine", *, name: Optional[str] = None) -> None:
         pass
 
     @abc.abstractmethod
@@ -18,23 +20,24 @@ class Session(ABC):
         pass
 
     @abc.abstractmethod
-    def ask(self, query: str) -> Result:
+    def ask(self, query: str, *, rows_limit: int = 100) -> Result:
         pass
 
 
 class SessionImpl(Session):
-    def __init__(self, llm: BaseChatModel):
+    def __init__(self, llm: BaseChatModel, *, data_executor: DataExecutor = SimpleDuckDBAgenticExecutor()):
         self.__dbs: dict[str, object] = {}
         self.__dfs: dict[str, DataFrame] = {}
         self.__llm = llm
+        self.__data_executor = data_executor
 
     def add_db(self, connection: "Engine", *, name: Optional[str] = None) -> None:
-        conn_name = name or f"sqlalchemy{len(self.__dbs) + 1}_db"
+        conn_name = name or f"db{len(self.__dbs) + 1}"
         self.__dbs[conn_name] = connection
 
     def add_df(self, df: DataFrame, *, name: Optional[str] = None) -> None:
-        df_name = name or f"dataframe{len(self.__dbs) + 1}"
+        df_name = name or f"df{len(self.__dfs) + 1}"
         self.__dfs[df_name] = df
 
-    def ask(self, query: str) -> Result:
-        return LazyResult(query, self.__llm, self.__dbs, self.__dfs)
+    def ask(self, query: str, *, rows_limit: int = 100) -> Result:
+        return LazyResult(query, self.__llm, self.__data_executor, self.__dbs, self.__dfs, rows_limit=rows_limit)

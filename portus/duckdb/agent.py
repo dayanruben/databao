@@ -1,9 +1,8 @@
 import json
-import importlib
 import logging
 from typing import List, TypedDict
 
-import duckdb
+from duckdb import DuckDBPyConnection
 from pandas import DataFrame
 from langchain_core.messages import HumanMessage
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -11,6 +10,7 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 
 from portus.data_executor import DataExecutor, DataResult
+from portus.duckdb.utils import init_duckdb_con, sql_strip
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class AgentResponse(TypedDict):
 
 class SimpleDuckDBAgenticExecutor(DataExecutor):
     @staticmethod
-    def __describe_duckdb_schema(con: duckdb.DuckDBPyConnection, max_cols_per_table: int = 40) -> str:
+    def __describe_duckdb_schema(con: DuckDBPyConnection, max_cols_per_table: int = 40) -> str:
         rows = con.execute("""
                            SELECT table_catalog, table_schema, table_name
                            FROM information_schema.tables
@@ -50,7 +50,7 @@ class SimpleDuckDBAgenticExecutor(DataExecutor):
         return "\n".join(lines) if lines else "(no base tables found)"
 
     @staticmethod
-    def __make_duckdb_tool(con: duckdb.DuckDBPyConnection):
+    def __make_duckdb_tool(con: DuckDBPyConnection):
         @tool("execute_sql")
         def execute_sql(sql: str, limit: int = 10) -> str:
             """
@@ -63,7 +63,7 @@ class SimpleDuckDBAgenticExecutor(DataExecutor):
             Returns:
                 JSON string: { "columns": [...], "rows": str, "limit": int, "note": str }
             """
-            statement = sql.strip().rstrip(";")
+            statement = sql_strip(sql)
             try:
                 sql_to_run = statement
                 if limit and " LIMIT " not in statement.upper():
@@ -85,7 +85,7 @@ class SimpleDuckDBAgenticExecutor(DataExecutor):
 
     @staticmethod
     def __make_react_duckdb_agent(
-            con: duckdb.DuckDBPyConnection,
+            con: DuckDBPyConnection,
             llm: BaseChatModel
     ):
         execute_sql_tool = SimpleDuckDBAgenticExecutor.__make_duckdb_tool(con)
@@ -132,44 +132,11 @@ class SimpleDuckDBAgenticExecutor(DataExecutor):
             dbs: dict[str, object],
             dfs: dict[str, DataFrame],
             *,
-            limit: int = 1000
+            rows_limit: int = 100
     ) -> DataResult:
-        # Loading DB engines dynamically to have NO dependencies on all db-related packages
-        try:
-            engine_mod = importlib.import_module("sqlalchemy.engine")
-            engine_class = getattr(engine_mod, "Engine")
-        except ModuleNotFoundError:
-            raise RuntimeError(
-                "SQLAlchemy is not installed. "
-                "Install with `pip install sqlalchemy`."
-            )
-
-        for name, engine in dbs.items():
-            if not isinstance(engine, engine_class):
-                raise TypeError("portus expects a SQLAlchemy Engine instance")
-
-        con = duckdb.connect(database=':memory:', read_only=False)
-        # TODO(artem.trofimov): support other DBs
-        con.execute("INSTALL postgres_scanner;")
-        con.execute("LOAD postgres_scanner;")
-
-        for name, engine in dbs.items():
-            url = engine.url
-            pg_conn = (
-                f"dbname={url.database} "
-                f"user={url.username} "
-                f"password={url.password or ''} "
-                f"host={url.host} "
-                f"port={url.port or 5432} "
-                f"sslmode=require"
-            )
-            con.execute(f"ATTACH '{pg_conn}' AS {name} (TYPE POSTGRES);")
-
-        for name, df in dfs.items():
-            con.register(name, df)
-
+        con = init_duckdb_con(dbs, dfs)
         agent, ask = self.__make_react_duckdb_agent(con, llm)
         answer: AgentResponse = ask(query)
         logger.info("Generated query: %s", answer["sql"])
-        df = con.execute(f"SELECT * FROM ({answer["sql"]}) t LIMIT {limit}").df()
+        df = con.execute(f"SELECT * FROM ({sql_strip(answer["sql"])}) t LIMIT {rows_limit}").df()
         return DataResult(answer["explanation"], df, {})

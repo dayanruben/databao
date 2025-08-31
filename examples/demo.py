@@ -17,8 +17,7 @@ df = pd.read_sql("""
                  """, engine)
 print(df)
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-session = portus.create_session(llm)
+session = portus.create_session("gpt-4o-mini")
 session.add_db(engine)
 
 data = {

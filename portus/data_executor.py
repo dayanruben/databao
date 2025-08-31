@@ -14,5 +14,13 @@ class DataResult:
 
 class DataExecutor(ABC):
     @abstractmethod
-    def execute(self, query: str, llm: BaseChatModel, dbs: dict[str, object], dfs: dict[str, DataFrame]) -> DataResult:
+    def execute(
+            self,
+            query: str,
+            llm: BaseChatModel,
+            dbs: dict[str, object],
+            dfs: dict[str, DataFrame],
+            *,
+            rows_limit: int = 100
+    ) -> DataResult:
         pass

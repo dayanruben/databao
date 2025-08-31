@@ -4,7 +4,7 @@ from abc import ABC
 from pandas import DataFrame
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from portus.duck_db import SimpleDuckDBAgenticExecutor
+from portus.data_executor import DataExecutor
 
 
 class Result(ABC):
@@ -26,14 +26,18 @@ class LazyResult(Result):
             self,
             query: str,
             llm: BaseChatModel,
+            data_executor: DataExecutor,
             dbs: dict[str, object],
-            dfs: dict[str, DataFrame]
+            dfs: dict[str, DataFrame],
+            *,
+            rows_limit: int = 100
     ):
         self.__query = query
         self.__llm = llm
         self.__dbs = dict(dbs)
         self.__dfs = dict(dfs)
-        self.__data_executor = SimpleDuckDBAgenticExecutor()
+        self.__data_executor = data_executor
+        self.__rows_limit = rows_limit
 
         self.__materialized = False
         self.__materialized_text = None
@@ -42,7 +46,8 @@ class LazyResult(Result):
 
     def __materialize(self):
         if not self.__materialized:
-            result = self.__data_executor.execute(self.__query, self.__llm, self.__dbs, self.__dfs)
+            result = self.__data_executor.execute(self.__query, self.__llm, self.__dbs, self.__dfs,
+                                                  rows_limit=self.__rows_limit)
             self.__materialized_df = result.df
             self.__materialized_text = result.text
             self.__materialized = True
