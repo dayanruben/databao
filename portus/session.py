@@ -21,7 +21,7 @@ class Session(ABC):
         pass
 
     @abc.abstractmethod
-    def ask(self, query: str, *, rows_limit: int = 100) -> Result:
+    def ask(self, query: str) -> Result:
         pass
 
 
@@ -47,6 +47,5 @@ class SessionImpl(Session):
         df_name = name or f"df{len(self.__dfs) + 1}"
         self.__dfs[df_name] = df
 
-    def ask(self, query: str, *, rows_limit: int = 100) -> Result:
-        return LazyResult(query, self.__llm, self.__data_executor, self.__visualizer, self.__dbs, self.__dfs,
-                          rows_limit=rows_limit)
+    def ask(self, query: str) -> Result:
+        return LazyResult(query, self.__llm, self.__data_executor, self.__visualizer, self.__dbs, self.__dfs)
