@@ -13,7 +13,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 
 class Session(ABC):
     @abc.abstractmethod
-    def add_db(self, connection: "Engine", *, name: Optional[str] = None) -> None:
+    def add_db(self, connection: Any, *, name: Optional[str] = None) -> None:
         pass
 
     @abc.abstractmethod
@@ -39,7 +39,7 @@ class SessionImpl(Session):
         self.__data_executor = data_executor
         self.__visualizer = visualizer
 
-    def add_db(self, connection: "Engine", *, name: Optional[str] = None) -> None:
+    def add_db(self, connection: Any, *, name: Optional[str] = None) -> None:
         conn_name = name or f"db{len(self.__dbs) + 1}"
         self.__dbs[conn_name] = connection
 
