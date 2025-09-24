@@ -11,6 +11,7 @@ from langgraph.prebuilt import create_react_agent
 
 from portus.data_executor import DataExecutor, DataResult
 from portus.duckdb.utils import init_duckdb_con, sql_strip
+from portus.opa import Opa
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +128,7 @@ class SimpleDuckDBAgenticExecutor(DataExecutor):
 
     def execute(
             self,
-            query: str,
+            opas: list[Opa],
             llm: BaseChatModel,
             dbs: dict[str, object],
             dfs: dict[str, DataFrame],
@@ -136,7 +137,7 @@ class SimpleDuckDBAgenticExecutor(DataExecutor):
     ) -> DataResult:
         con = init_duckdb_con(dbs, dfs)
         agent, ask = self.__make_react_duckdb_agent(con, llm)
-        answer: AgentResponse = ask(query)
+        answer: AgentResponse = ask(opas[-1].query)
         logger.info("Generated query: %s", answer["sql"])
         df = con.execute(f'SELECT * FROM ({sql_strip(answer["sql"])}) t LIMIT {rows_limit}').df()
         return DataResult(answer["explanation"], df, {"code": answer["sql"]})

@@ -4,7 +4,7 @@ from typing import Optional, Any
 
 from pandas import DataFrame
 
-from portus.result import Result, LazyResult
+from portus.pipe import Pipe, LazyPipe
 from portus.data_executor import DataExecutor
 from portus.vizualizer import Visualizer, DumbVisualizer
 from portus.duckdb.agent import SimpleDuckDBAgenticExecutor
@@ -21,7 +21,7 @@ class Session(ABC):
         pass
 
     @abc.abstractmethod
-    def ask(self, query: str) -> Result:
+    def ask(self, query: str) -> Pipe:
         pass
 
 
@@ -49,6 +49,6 @@ class SessionImpl(Session):
         df_name = name or f"df{len(self.__dfs) + 1}"
         self.__dfs[df_name] = df
 
-    def ask(self, query: str) -> Result:
-        return LazyResult(query, self.__llm, self.__data_executor, self.__visualizer, self.__dbs, self.__dfs,
-                          default_rows_limit=self.__default_rows_limit)
+    def ask(self, query: str) -> Pipe:
+        return LazyPipe(self.__llm, self.__data_executor, self.__visualizer, self.__dbs, self.__dfs,
+                        default_rows_limit=self.__default_rows_limit).ask(query)

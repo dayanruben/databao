@@ -5,11 +5,12 @@ from typing import Optional, Any
 from pandas import DataFrame
 from langchain_core.language_models.chat_models import BaseChatModel
 
+from portus.opa import Opa
 from portus.vizualizer import Visualizer, VisualisationResult
 from portus.data_executor import DataExecutor, DataResult
 
 
-class Result(ABC):
+class Pipe(ABC):
     @abc.abstractmethod
     def df(self, *, rows_limit: Optional[int] = None) -> DataFrame:
         pass
@@ -26,11 +27,14 @@ class Result(ABC):
     def text(self) -> str:
         pass
 
+    @abc.abstractmethod
+    def ask(self, query: str) -> "Pipe":
+        pass
 
-class LazyResult(Result):
+
+class LazyPipe(Pipe):
     def __init__(
             self,
-            query: str,
             llm: BaseChatModel,
             data_executor: DataExecutor,
             visualizer: Visualizer,
@@ -39,7 +43,6 @@ class LazyResult(Result):
             *,
             default_rows_limit: int = 1000
     ):
-        self.__query = query
         self.__llm = llm
         self.__dbs = dict(dbs)
         self.__dfs = dict(dfs)
@@ -52,11 +55,12 @@ class LazyResult(Result):
         self.__data_result: Optional[DataResult] = None
         self.__visualization_materialized = False
         self.__visualization_result: Optional[VisualisationResult] = None
+        self.__opas: list[Opa] = []
 
     def __materialize_data(self, rows_limit: Optional[int]) -> DataResult:
         rows_limit = rows_limit if rows_limit else self.__default_rows_limit
         if not self.__data_materialized or rows_limit != self.__data_materialized_rows:
-            self.__data_result = self.__data_executor.execute(self.__query, self.__llm, self.__dbs, self.__dfs,
+            self.__data_result = self.__data_executor.execute(self.__opas, self.__llm, self.__dbs, self.__dfs,
                                                               rows_limit=rows_limit)
             self.__data_materialized = True
             self.__data_materialized_rows = rows_limit
@@ -86,3 +90,7 @@ class LazyResult(Result):
 
     def __str__(self):
         return self.text()
+
+    def ask(self, query: str) -> Pipe:
+        self.__opas.append(Opa(query=query))
+        return self
