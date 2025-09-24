@@ -18,10 +18,12 @@ def create_session(
         llm: Union[str, BaseChatModel],
         *,
         data_executor: DataExecutor = SimpleDuckDBAgenticExecutor(),
-        visualizer: Visualizer = DumbVisualizer()
+        visualizer: Visualizer = DumbVisualizer(),
+        default_rows_limit: int = 1000
 ) -> Session:
     return SessionImpl(
         llm if isinstance(llm, BaseChatModel) else init_chat_model(llm),
         data_executor=data_executor,
-        visualizer=visualizer
+        visualizer=visualizer,
+        default_rows_limit=default_rows_limit
     )

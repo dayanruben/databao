@@ -27,9 +27,6 @@ class Result(ABC):
         pass
 
 
-DEFAULT_ROWS_LIMIT = 1000
-
-
 class LazyResult(Result):
     def __init__(
             self,
@@ -39,6 +36,8 @@ class LazyResult(Result):
             visualizer: Visualizer,
             dbs: dict[str, Any],
             dfs: dict[str, DataFrame],
+            *,
+            default_rows_limit: int = 1000
     ):
         self.__query = query
         self.__llm = llm
@@ -46,6 +45,7 @@ class LazyResult(Result):
         self.__dfs = dict(dfs)
         self.__data_executor = data_executor
         self.__visualizer = visualizer
+        self.__default_rows_limit = default_rows_limit
 
         self.__data_materialized = False
         self.__data_materialized_rows: Optional[int] = None
@@ -54,7 +54,7 @@ class LazyResult(Result):
         self.__visualization_result: Optional[VisualisationResult] = None
 
     def __materialize_data(self, rows_limit: Optional[int]) -> DataResult:
-        rows_limit = rows_limit if rows_limit else DEFAULT_ROWS_LIMIT
+        rows_limit = rows_limit if rows_limit else self.__default_rows_limit
         if not self.__data_materialized or rows_limit != self.__data_materialized_rows:
             self.__data_result = self.__data_executor.execute(self.__query, self.__llm, self.__dbs, self.__dfs,
                                                               rows_limit=rows_limit)

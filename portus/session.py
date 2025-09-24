@@ -31,13 +31,15 @@ class SessionImpl(Session):
             llm: BaseChatModel,
             *,
             data_executor: DataExecutor = SimpleDuckDBAgenticExecutor(),
-            visualizer: Visualizer = DumbVisualizer()
+            visualizer: Visualizer = DumbVisualizer(),
+            default_rows_limit: int = 1000
     ):
         self.__dbs: dict[str, Any] = {}
         self.__dfs: dict[str, DataFrame] = {}
         self.__llm = llm
         self.__data_executor = data_executor
         self.__visualizer = visualizer
+        self.__default_rows_limit = default_rows_limit
 
     def add_db(self, connection: Any, *, name: Optional[str] = None) -> None:
         conn_name = name or f"db{len(self.__dbs) + 1}"
@@ -48,4 +50,5 @@ class SessionImpl(Session):
         self.__dfs[df_name] = df
 
     def ask(self, query: str) -> Result:
-        return LazyResult(query, self.__llm, self.__data_executor, self.__visualizer, self.__dbs, self.__dfs)
+        return LazyResult(query, self.__llm, self.__data_executor, self.__visualizer, self.__dbs, self.__dfs,
+                          default_rows_limit=self.__default_rows_limit)
