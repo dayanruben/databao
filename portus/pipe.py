@@ -20,15 +20,16 @@ class Pipe(ABC):
         pass
 
     @abc.abstractmethod
-    def meta(self) -> dict[str, Any]:
-        pass
-
-    @abc.abstractmethod
     def text(self) -> str:
         pass
 
     @abc.abstractmethod
     def ask(self, query: str) -> "Pipe":
+        pass
+
+    @property
+    @abc.abstractmethod
+    def meta(self) -> dict[str, Any]:
         pass
 
 
@@ -83,6 +84,7 @@ class LazyPipe(Pipe):
         return self.__materialize_visualization(request,
                                                 rows_limit if rows_limit else self.__data_materialized_rows).plot
 
+    @property
     def meta(self) -> dict[str, Any]:
         return self.__meta
 

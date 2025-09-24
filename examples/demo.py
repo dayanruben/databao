@@ -28,4 +28,5 @@ session.add_df(df)
 
 ask = session.ask("count cancelled shows by directors")
 print(ask.df())
-ask.plot()
+plot = ask.plot()
+print(ask.meta)
