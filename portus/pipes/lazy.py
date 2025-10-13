@@ -28,7 +28,7 @@ class LazyPipe(Pipe):
         rows_limit = rows_limit if rows_limit else self.__default_rows_limit
         if not self.__data_materialized or rows_limit != self.__data_materialized_rows:
             self.__data_result = self.__session.executor.execute(
-                self.__session, self.__opas, rows_limit=rows_limit
+                self.__session, self.__opas, rows_limit=rows_limit, cache_scope=str(id(self))
             )
             self.__data_materialized = True
             self.__data_materialized_rows = rows_limit
