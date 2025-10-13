@@ -8,11 +8,11 @@ class InMemCache(Cache):
         self._cache = {}
         self._prefix = ""
 
-    def put(self, k: str, v: BytesIO) -> None:
-        self._cache[self._prefix + k] = v
+    def put(self, key: str, source: BytesIO) -> None:
+        self._cache[self._prefix + key] = source.getvalue()
 
-    def get(self, k: str) -> BytesIO:
-        return self._cache[self._prefix + k]
+    def get(self, key: str, dest: BytesIO) -> None:
+        dest.write(self._cache[self._prefix + key])
 
     def scoped(self, scope: str) -> Cache:
         self._prefix = scope

@@ -137,7 +137,7 @@ class SimpleDuckDBAgenticExecutor(Executor):
 
         # key = hash(opas)
         # cache = session.cache.scoped(cache_scope)
-        # cache.get(key)
-        # cache.put(key, value)
+        # cache.get(key, destination_buffer)
+        # cache.put(key, source_buffer)
 
         return ExecutionResult(text=answer.explanation, meta={}, code=answer.sql, df=df)
