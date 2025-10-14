@@ -4,9 +4,9 @@ from portus.core.cache import Cache
 
 
 class InMemCache(Cache):
-    def __init__(self):
+    def __init__(self, prefix: str = ""):
         self._cache = {}
-        self._prefix = ""
+        self._prefix = prefix
 
     def put(self, key: str, source: BytesIO) -> None:
         self._cache[self._prefix + key] = source.getvalue()
@@ -15,5 +15,4 @@ class InMemCache(Cache):
         dest.write(self._cache[self._prefix + key])
 
     def scoped(self, scope: str) -> Cache:
-        self._prefix = scope
-        return self
+        return InMemCache(prefix=scope)
