@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from .executor import ExecutionResult
+from portus.core.executor import ExecutionResult
 
 
 class VisualisationResult(BaseModel):

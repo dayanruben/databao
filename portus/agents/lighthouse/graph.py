@@ -12,10 +12,9 @@ from langgraph.constants import END, START
 from langgraph.graph import add_messages
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 
+from portus.agents.lighthouse.utils import exception_to_string
 from portus.configs.llm import LLMConfig
 from portus.core import ExecutionResult
-
-from .utils import exception_to_string
 
 
 class AgentState(TypedDict):
@@ -278,7 +277,7 @@ class ExecuteSubmit:
             model = config.chat_model
         messages = ExecuteSubmit._apply_system_prompt_caching(config, messages)
         response: AIMessage = ExecuteSubmit._call_model(model, messages)
-        return messages + [response]
+        return [*messages, response]
 
     @staticmethod
     def _is_anthropic_model(config: LLMConfig) -> bool:
@@ -293,7 +292,7 @@ class ExecuteSubmit:
         # Assume only the first message can be a system prompt.
         assert all(m.type != "system" for m in messages[1:])
         if messages[0].type == "system":
-            messages = [ExecuteSubmit._set_message_cache_breakpoint(config, messages[0])] + messages[1:]
+            messages = [ExecuteSubmit._set_message_cache_breakpoint(config, messages[0]), *messages[1:]]
         return messages
 
     @staticmethod
