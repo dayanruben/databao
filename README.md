@@ -1,7 +1,7 @@
-# Portus: NL queries for data
+# Databao: NL queries for data
 
 Natural‑language queries for your data — connect SQL databases and DataFrames, ask questions in plain English, and get tables, plots, and explanations back. 
-Portus runs agents on top of dataframes and your DB connections, and can use both cloud and local LLMs.
+Databao runs agents on top of dataframes and your DB connections, and can use both cloud and local LLMs.
 
 
 ## Overview
@@ -53,15 +53,13 @@ engine = create_engine(
 )
 ```
 
-### 2) Open a Portus session and register sources
+### 2) Open a databao session and register sources
 
 ```python
-import portus
+llm_config = LLMConfig(name="gpt-4o-mini", temperature=0)
+session = databao.open_session(name="demo", llm_config=llm_config)
 
-llm_config = portus.LLMConfig(name="gpt-4o-mini", temperature=0)
-session = portus.open_session(name="demo", llm_config=llm_config)
-
-# Register your engine (also supports native DuckDB connections)
+# Register your engine
 session.add_db(engine)
 ```
 
@@ -84,7 +82,7 @@ print(plot.code)  # access generated plot code if needed
 ```
 
 ## Local models
-Portus can be used with local LLMs either using Ollama or OpenAI‑compatible servers (LM Studio, llama.cpp, vLLM, etc.).
+Databao can be used with local LLMs either using Ollama or OpenAI‑compatible servers (LM Studio, llama.cpp, etc.).
 
 ### Ollama
 1. Install Ollama for your OS and make sure it is running.
@@ -139,7 +137,7 @@ uv run pytest -v -m "not apikey"
 
 ## Project structure
 ```
-portus/
+databao/
   api.py                 # public entry: open_session(...)
   core/                  # Session, Pipe, Executor, Visualizer abstractions
   agents/                # Lighthouse (default) and React-DuckDB agents
@@ -151,7 +149,3 @@ tests/                   # pytest suite
 
 ## Entry points
 - Programmatic: `from portus.api import open_session`
-
-## License
-TODO: Add a LICENSE file and state the license here.
-

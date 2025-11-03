@@ -4,8 +4,8 @@ from typing import Any
 from pandas import DataFrame
 from pydantic import BaseModel, ConfigDict
 
-from portus.core.opa import Opa
-from portus.core.session import Session
+from databao.core.opa import Opa
+from databao.core.session import Session
 
 
 class ExecutionResult(BaseModel):
@@ -44,6 +44,7 @@ class Executor(ABC):
         *,
         rows_limit: int = 100,
         cache_scope: str = "common_cache",
+        stream: bool = True,
     ) -> ExecutionResult:
         """Execute a single OPA within a session.
 

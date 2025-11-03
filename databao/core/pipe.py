@@ -3,12 +3,12 @@ from typing import TYPE_CHECKING, Any
 
 from pandas import DataFrame
 
-from portus.core.opa import Opa
+from databao.core.opa import Opa
 
 if TYPE_CHECKING:
-    from portus.core.executor import ExecutionResult
-    from portus.core.session import Session
-    from portus.core.visualizer import VisualisationResult
+    from databao.core.executor import ExecutionResult
+    from databao.core.session import Session
+    from databao.core.visualizer import VisualisationResult
 
 
 class Pipe:
@@ -18,10 +18,11 @@ class Pipe:
     - Materializes data and visualizations lazily on demand and caches results per pipe.
     - Exposes helpers to get the latest dataframe/text/plot/code.
     """
-
     def __init__(self, session: "Session", *, default_rows_limit: int = 1000):
         self._session = session
         self._default_rows_limit = default_rows_limit
+
+        self._streaming_enabled = True
 
         self._data_materialized_rows: int | None = None
         self._data_result: ExecutionResult | None = None
@@ -49,7 +50,11 @@ class Pipe:
         if len(new_opas) > 0 or rows_limit != self._data_materialized_rows:
             for opa in new_opas:
                 self._data_result = self._session.executor.execute(
-                    self._session, opa, rows_limit=rows_limit, cache_scope=self._cache_scope
+                    self._session,
+                    opa,
+                    rows_limit=rows_limit,
+                    cache_scope=self._cache_scope,
+                    stream=self._streaming_enabled,
                 )
                 self._meta.update(self._data_result.meta)
             self._opas_processed_count += len(new_opas)
@@ -98,13 +103,14 @@ class Pipe:
     def __str__(self) -> str:
         return self.text()
 
-    def ask(self, query: str) -> "Pipe":
+    def ask(self, query: str, *, stream: bool = True) -> "Pipe":
         """Append a new user query to this pipe.
 
         Returns self to allow chaining (e.g., pipe.ask("..."))
         """
         self._opas.append(Opa(query=query))
         self._visualization_materialized = False
+        self._streaming_enabled = stream
         return self
 
     @property
