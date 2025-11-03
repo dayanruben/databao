@@ -13,8 +13,13 @@ Portus runs agents on top of dataframes and your DB connections, and can use bot
 
 
 ## Installation
-Using uv (recommended):
+Using pip:
+```bash
+pip install portus-ai
+```
 
+Using uv (for development):
+Clone this repo and run:
 ```bash
 # Install dependencies for the library
 uv sync
@@ -23,20 +28,9 @@ uv sync
 uv sync --extra examples
 ```
 
-If you are developing, you may also want the `dev` dependency group:
-
-```bash
-uv sync --group dev
-```
-
 ## Environment variables
-Copy `.env.example` to `.env` and fill in your keys:
 
-```bash
-cp .env.example .env
-```
-
-Supported variables:
+Specify your API keys in the environment variables:
 - `OPENAI_API_KEY` — if using OpenAI models
 - `ANTHROPIC_API_KEY` — if using Anthropic models
 - Optional for local/OAI‑compatible servers:
@@ -46,24 +40,26 @@ Supported variables:
 ## Quickstart
 
 ### 1) Create a database connection (SQLAlchemy)
-Do not hard‑code credentials in code. Use env vars or a secret manager. Example with placeholders:
-
 ```python
 from sqlalchemy import create_engine
 
+user = os.environ.get("DATABASE_USER")
+password = os.environ.get("DATABASE_PASSWORD")
+host = os.environ.get("DATABASE_HOST")
+database = os.environ.get("DATABASE_NAME")
+
 engine = create_engine(
-    "postgresql://<user>:<password>@<host>/<database>"
+    f"postgresql://{user}:{password}@{host}/{database}"
 )
 ```
 
 ### 2) Open a Portus session and register sources
 
 ```python
-from portus.api import open_session
-from portus.configs.llm import LLMConfig
+import portus
 
-llm_config = LLMConfig(name="gpt-4o-mini", temperature=0)
-session = open_session(name="demo", llm_config=llm_config)
+llm_config = portus.LLMConfig(name="gpt-4o-mini", temperature=0)
+session = portus.open_session(name="demo", llm_config=llm_config)
 
 # Register your engine (also supports native DuckDB connections)
 session.add_db(engine)
