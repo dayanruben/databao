@@ -49,6 +49,21 @@ class Session:
         self.__default_rows_limit = default_rows_limit
 
     def add_db(self, connection: Any, *, name: str | None = None, context: str | None = None) -> None:
+        """
+        Add a database connection to the internal collection and optionally associate it
+        with a specific context for query execution. Supports integration with SQLAlchemy
+        engines and direct DuckDB connections.
+
+        Args:
+            connection (Any): The database connection to be added. Can be a SQLAlchemy
+                engine or a native DuckDB connection.
+            name (str | None): Optional name to assign to the database connection. If
+                not provided, a default name such as 'db1', 'db2', etc., will be
+                generated dynamically based on the collection size.
+            context (str | None): Optional context for the database connection. It can
+                be either the path to a file whose content will be used as the context or
+                the direct context as a string.
+        """
         from databao.duckdb import register_sqlalchemy
 
         conn_name = name or f"db{len(self.__dbs) + 1}"
@@ -69,6 +84,13 @@ class Session:
             self.__db_contexts[conn_name] = context
 
     def add_df(self, df: DataFrame, *, name: str | None = None, context: str | None = None) -> None:
+        """Register a DataFrame in this session and in the session's DuckDB.
+
+        Args:
+            df: DataFrame to expose to agents/executors/SQL.
+            name: Optional name; defaults to df1/df2/...
+            context: Optional text or path to a file describing this dataset for the LLM.
+        """
         df_name = name or f"df{len(self.__dfs) + 1}"
         self.__dfs[df_name] = df
 
@@ -122,4 +144,5 @@ class Session:
 
     @property
     def context(self) -> tuple[dict[str, str], dict[str, str]]:
+        """Per-source natural-language context for DBs and DFs: (db_contexts, df_contexts)."""
         return self.__db_contexts, self.__df_contexts
