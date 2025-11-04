@@ -18,6 +18,7 @@ class Pipe:
     - Materializes data and visualizations lazily on demand and caches results per pipe.
     - Exposes helpers to get the latest dataframe/text/plot/code.
     """
+
     def __init__(self, session: "Session", *, default_rows_limit: int = 1000):
         self._session = session
         self._default_rows_limit = default_rows_limit
@@ -77,6 +78,10 @@ class Pipe:
             raise RuntimeError("_visualization_result is None after materialization")
         return self._visualization_result
 
+    def code(self) -> str | None:
+        """Return the latest generated code."""
+        return self._materialize_data(self._data_materialized_rows).code
+
     def df(self, *, rows_limit: int | None = None) -> DataFrame | None:
         """Return the latest dataframe, materializing data as needed.
 
@@ -101,7 +106,13 @@ class Pipe:
         return self._materialize_data(self._data_materialized_rows).text
 
     def __str__(self) -> str:
-        return self.text()
+        if self._data_result is not None:
+            return (
+                f"Materialized {self.__class__.__name__} with "
+                f"{len(self._data_result.df) if self._data_result.df is not None else 0} data rows."
+            )
+        else:
+            return f"Unmaterialized {self.__class__.__name__}."
 
     def ask(self, query: str, *, stream: bool = True) -> "Pipe":
         """Append a new user query to this pipe.
@@ -117,7 +128,3 @@ class Pipe:
     def meta(self) -> dict[str, Any]:
         """Aggregated metadata from executor/visualizer for this pipe."""
         return self._meta
-
-    @property
-    def code(self) -> str | None:
-        return self._materialize_data(self._data_materialized_rows).code
