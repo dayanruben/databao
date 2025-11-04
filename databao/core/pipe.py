@@ -18,6 +18,7 @@ class Pipe:
     - Materializes data and visualizations lazily on demand and caches results per pipe.
     - Exposes helpers to get the latest dataframe/text/plot/code.
     """
+
     def __init__(self, session: "Session", *, default_rows_limit: int = 1000):
         self._session = session
         self._default_rows_limit = default_rows_limit
