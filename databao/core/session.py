@@ -32,6 +32,7 @@ class Session:
         default_rows_limit: int,
         default_stream_ask: bool = True,
         default_stream_plot: bool = False,
+        default_lazy_threads: bool = False,
     ):
         self.__name = name
         self.__llm = llm.chat_model
@@ -53,6 +54,7 @@ class Session:
 
         # Pipe/thread defaults
         self.__default_rows_limit = default_rows_limit
+        self.__default_lazy_threads = default_lazy_threads
         self.__default_stream_ask = default_stream_ask
         self.__default_stream_plot = default_stream_plot
 
@@ -131,13 +133,16 @@ class Session:
             raise ValueError("Invalid context provided.")
         self.__additional_context.append(text)
 
-    def thread(self, *, stream_ask: bool | None = None, stream_plot: bool | None = None) -> Pipe:
+    def thread(
+        self, *, stream_ask: bool | None = None, stream_plot: bool | None = None, lazy: bool | None = None
+    ) -> Pipe:
         """Start a new thread in this session."""
         return Pipe(
             self,
             default_rows_limit=self.__default_rows_limit,
             default_stream_ask=stream_ask if stream_ask is not None else self.__default_stream_ask,
             default_stream_plot=stream_plot if stream_plot is not None else self.__default_stream_plot,
+            lazy=lazy if lazy is not None else self.__default_lazy_threads,
         )
 
     @property
