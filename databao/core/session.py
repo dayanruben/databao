@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from _duckdb import DuckDBPyConnection
+from duckdb import DuckDBPyConnection
 from langchain_core.language_models.chat_models import BaseChatModel
 from pandas import DataFrame
 from sqlalchemy import Engine
@@ -62,7 +62,13 @@ class Session:
             return context.read_text()
         return context
 
-    def add_db(self, connection: DuckDBPyConnection[Any] | Engine, *, name: str | None = None, context: str | Path | None = None) -> None:
+    def add_db(
+        self,
+        connection: DuckDBPyConnection | Engine,
+        *,
+        name: str | None = None,
+        context: str | Path | None = None,
+    ) -> None:
         """
         Add a database connection to the internal collection and optionally associate it
         with a specific context for query execution. Supports integration with SQLAlchemy
