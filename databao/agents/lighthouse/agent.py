@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import duckdb
+import pandas as pd
 from langchain_core.messages import SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
@@ -11,19 +12,18 @@ from databao.agents.base import AgentExecutor
 from databao.agents.lighthouse.graph import ExecuteSubmit
 from databao.agents.lighthouse.utils import get_today_date_str, read_prompt_template
 from databao.core import ExecutionResult, Opa, Session
-from databao.duckdb.utils import describe_duckdb_schema, register_sqlalchemy, get_db_path
+from databao.duckdb.utils import describe_duckdb_schema, get_db_path, register_sqlalchemy
 
 
 class LighthouseAgent(AgentExecutor):
     def __init__(self) -> None:
-        """Initialize agent with lazy graph compilation."""
         super().__init__()
         self._prompt_template = read_prompt_template(Path("system_prompt_simple.jinja"))
 
         # Create a DuckDB connection for the agent
         self._duckdb_connection = duckdb.connect(":memory:")
         self._graph: ExecuteSubmit = ExecuteSubmit(self._duckdb_connection)
-        self._compiled_graph: CompiledStateGraph | None = None
+        self._compiled_graph: CompiledStateGraph[Any] | None = None
 
     def render_system_prompt(self, data_connection: Any, session: Session) -> str:
         """Render system prompt with database schema."""
@@ -47,7 +47,7 @@ class LighthouseAgent(AgentExecutor):
 
         return prompt.strip()
 
-    def register_db(self, name, connection) -> Any:
+    def register_db(self, name: str, connection: Any) -> None:
         """Register DB in the DuckDB connection."""
 
         if isinstance(connection, duckdb.DuckDBPyConnection):
@@ -62,10 +62,10 @@ class LighthouseAgent(AgentExecutor):
         else:
             raise ValueError("Only DuckDB or SQLAlchemy connections are supported.")
 
-    def register_df(self, name, df) -> None:
+    def register_df(self, name: str, df: pd.DataFrame) -> None:
         self._duckdb_connection.register(name, df)
 
-    def _get_compiled_graph(self, session: Session) -> CompiledStateGraph:
+    def _get_compiled_graph(self, session: Session) -> CompiledStateGraph[Any]:
         """Get compiled graph."""
         compiled_graph = self._compiled_graph or self._graph.compile(session.llm_config)
         self._compiled_graph = compiled_graph

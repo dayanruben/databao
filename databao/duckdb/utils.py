@@ -4,10 +4,14 @@ from urllib.parse import quote, urlsplit, urlunsplit
 
 from duckdb import DuckDBPyConnection
 
-def get_db_path(conn):
+
+def get_db_path(conn: Any) -> str | None:
     """Get the database file path for DuckDB connection, or None if in-memory."""
     if isinstance(conn, DuckDBPyConnection):
-        db_path = conn.execute("PRAGMA database_list").fetchone()[2]
+        db_path = conn.execute("PRAGMA database_list").fetchone()
+        if db_path is None:
+            return None
+        db_path = db_path[2]
         return None if db_path == "memory" else db_path
     return None
 
