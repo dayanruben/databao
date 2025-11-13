@@ -13,6 +13,7 @@ from langgraph.graph import add_messages
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 from langgraph.prebuilt import InjectedState
 
+from databao.agents.frontend.text_frontend import dataframe_to_markdown
 from databao.agents.lighthouse.utils import exception_to_string
 from databao.configs.llm import LLMConfig
 from databao.core import ExecutionResult
@@ -96,7 +97,7 @@ class ExecuteSubmit:
                 limit = graph_state["limit_max_rows"]
                 df = execute_duckdb_sql(sql, self._connection, limit=limit)
                 df_csv = df.head(self.MAX_TOOL_ROWS).to_csv(index=False)
-                df_markdown = df.head(self.MAX_TOOL_ROWS).to_markdown(index=False)
+                df_markdown = dataframe_to_markdown(df.head(self.MAX_TOOL_ROWS), index=False)
                 if len(df) > self.MAX_TOOL_ROWS:
                     df_csv += f"\nResult is truncated from {len(df)} to {self.MAX_TOOL_ROWS} rows."
                     df_markdown += f"\nResult is truncated from {len(df)} to {self.MAX_TOOL_ROWS} rows."
