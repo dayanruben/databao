@@ -3,6 +3,18 @@ from typing import Any
 from urllib.parse import quote, urlsplit, urlunsplit
 
 from duckdb import DuckDBPyConnection
+from sqlalchemy import Engine
+
+
+def get_db_path(conn: Any) -> str | None:
+    """Get the database file path for DuckDB connection, or None if in-memory."""
+    if isinstance(conn, DuckDBPyConnection):
+        db_path = conn.execute("PRAGMA database_list").fetchone()
+        if db_path is None:
+            return None
+        db_path = db_path[2]
+        return None if db_path == "memory" else db_path
+    return None
 
 
 def describe_duckdb_schema(con: DuckDBPyConnection, max_cols_per_table: int = 40) -> str:
@@ -42,7 +54,7 @@ def describe_duckdb_schema(con: DuckDBPyConnection, max_cols_per_table: int = 40
     return "\n".join(lines) if lines else "(no base tables found)"
 
 
-def register_sqlalchemy(con: DuckDBPyConnection, sqlalchemy_engine: Any, name: str) -> None:
+def register_sqlalchemy(con: DuckDBPyConnection, sqlalchemy_engine: Engine, name: str) -> None:
     """Attach an external DB to DuckDB using an existing SQLAlchemy engine.
 
     Supports PostgreSQL and MySQL/MariaDB (via DuckDB extensions). The external

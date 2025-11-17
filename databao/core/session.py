@@ -1,10 +1,10 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import duckdb
+from duckdb import DuckDBPyConnection
 from langchain_core.language_models.chat_models import BaseChatModel
 from pandas import DataFrame
-from sqlalchemy import Engine
+from sqlalchemy import Connection, Engine
 
 from databao.configs.llm import LLMConfig
 from databao.core.pipe import Pipe
@@ -45,9 +45,6 @@ class Session:
         self.__df_context: dict[str, str] = {}
         self.__additional_context: list[str] = []
 
-        # Create a DuckDB connection for the session
-        self.__duckdb_connection = duckdb.connect(":memory:")
-
         self.__executor = data_executor
         self.__visualizer = visualizer
         self.__cache = cache
@@ -65,15 +62,21 @@ class Session:
             return context.read_text()
         return context
 
-    def add_db(self, connection: Any, *, name: str | None = None, context: str | Path | None = None) -> None:
+    def add_db(
+        self,
+        connection: DuckDBPyConnection | Engine | Connection,
+        *,
+        name: str | None = None,
+        context: str | Path | None = None,
+    ) -> None:
         """
         Add a database connection to the internal collection and optionally associate it
         with a specific context for query execution. Supports integration with SQLAlchemy
         engines and direct DuckDB connections.
 
         Args:
-            connection (Any): The database connection to be added. Can be a SQLAlchemy
-                engine or a native DuckDB connection.
+            connection (DuckDBPyConnection | Engine | Connection): The database connection to be added.
+                Can be an SQLAlchemy engine or connection or a native DuckDB connection.
             name (str | None): Optional name to assign to the database connection. If
                 not provided, a default name such as 'db1', 'db2', etc., will be
                 generated dynamically based on the collection size.
@@ -81,19 +84,13 @@ class Session:
                 be either the path to a file whose content will be used as the context or
                 the direct context as a string.
         """
-        from databao.duckdb import register_sqlalchemy
+        if not isinstance(connection, (DuckDBPyConnection, Engine, Connection)):
+            raise ValueError("Connection must be a DuckDB connection or SQLAlchemy engine.")
 
         conn_name = name or f"db{len(self.__dbs) + 1}"
 
-        # If it's a SQLAlchemy engine, register it with our DuckDB connection
-        if isinstance(connection, Engine):
-            register_sqlalchemy(self.__duckdb_connection, connection, conn_name)
-            # Store the DuckDB connection in dbs if not already there
-            if "duckdb" not in self.__dbs:
-                self.__dbs["duckdb"] = self.__duckdb_connection
-        else:
-            # For other connection types (like native DuckDB), store directly
-            self.__dbs[conn_name] = connection
+        self.__dbs[conn_name] = connection
+        self.executor.register_db(conn_name, connection)
 
         if (context_text := self._parse_context_arg(context)) is not None:
             self.__db_context[conn_name] = context_text
@@ -109,12 +106,7 @@ class Session:
         df_name = name or f"df{len(self.__dfs) + 1}"
         self.__dfs[df_name] = df
 
-        # Register the DataFrame with DuckDB
-        self.__duckdb_connection.register(df_name, df)
-
-        # Store the DuckDB connection in dbs if not already there
-        if "duckdb" not in self.__dbs:
-            self.__dbs["duckdb"] = self.__duckdb_connection
+        self.executor.register_df(df_name, df)
 
         if (context_text := self._parse_context_arg(context)) is not None:
             self.__df_context[df_name] = context_text
@@ -137,6 +129,8 @@ class Session:
         self, *, stream_ask: bool | None = None, stream_plot: bool | None = None, lazy: bool | None = None
     ) -> Pipe:
         """Start a new thread in this session."""
+        if not self.__dbs and not self.__dfs:
+            raise ValueError("No databases or dataframes registered in this session.")
         return Pipe(
             self,
             default_rows_limit=self.__default_rows_limit,

@@ -2,7 +2,7 @@
 name = "databao"
 description = "databao: NL queries for data"
 dynamic = ["version"]  # Based on the git tag
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.14"
 readme = "README.md"
 license = "Apache-2.0 AND LicenseRef-Additional-Terms"
 license-files = ["LICENSE.md"]
@@ -26,6 +26,7 @@ dependencies = [
     "matplotlib>=3.10.0",
     "edaplot-vl~=0.1.0",
     "diskcache>=5.6.3",
+    "sqlglot>=27.29.0",
 ]
 
 [project.optional-dependencies]
@@ -105,8 +106,6 @@ select = [
 ban-relative-imports = "all"
 
 [tool.uv]
-required-version = "==0.9.5"
-
 # https://github.com/ninoseki/uv-dynamic-versioning/blob/main/docs/tips.md#build-caching-and-editable-installs
 cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true }}]
 
