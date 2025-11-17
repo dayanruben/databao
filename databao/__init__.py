@@ -6,7 +6,7 @@ except importlib.metadata.PackageNotFoundError:
     __version__ = "0.0.0"  # Fallback for development mode
 
 
-from databao.api import open_session
+from databao.api import new_agent
 from databao.configs.llm import LLMConfig
 from databao.core import Agent, ExecutionResult, Executor, Opa, Pipe, VisualisationResult, Visualizer
 
@@ -20,5 +20,5 @@ __all__ = [
     "VisualisationResult",
     "Visualizer",
     "__version__",
-    "open_session",
+    "new_agent",
 ]

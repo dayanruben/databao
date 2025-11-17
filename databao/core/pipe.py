@@ -7,7 +7,7 @@ from databao.core.executor import ExecutionResult, OutputModalityHints
 from databao.core.opa import Opa
 
 if TYPE_CHECKING:
-    from databao.core.session import Agent
+    from databao.core.agent import Agent
     from databao.core.visualizer import VisualisationResult
 
 
@@ -21,7 +21,7 @@ class Pipe:
 
     def __init__(
         self,
-        session: "Agent",
+        agent: "Agent",
         *,
         default_rows_limit: int = 1000,
         default_stream_ask: bool = True,
@@ -29,7 +29,7 @@ class Pipe:
         lazy: bool = False,
         auto_output_modality: bool = True,
     ):
-        self._session = session
+        self._agent = agent
         self._default_rows_limit = default_rows_limit
 
         self._lazy_mode = lazy
@@ -58,7 +58,7 @@ class Pipe:
         self._meta: dict[str, Any] = {}
 
         # A unique cache scope so executors can store per-thread state (e.g., message history)
-        self._cache_scope = f"{self._session.name}/{uuid.uuid4()}"
+        self._cache_scope = f"{self._agent.name}/{uuid.uuid4()}"
 
     def _materialize_data(self, rows_limit: int | None) -> "ExecutionResult":
         """Materialize the latest data state by executing pending OPAs if needed."""
@@ -67,8 +67,8 @@ class Pipe:
             rows_limit = rows_limit if rows_limit else self._default_rows_limit
             stream = self._stream_ask if self._stream_ask is not None else self._default_stream_ask
             for opa in new_opas:
-                self._data_result = self._session.executor.execute(
-                    self._session,
+                self._data_result = self._agent.executor.execute(
+                    self._agent,
                     opa,
                     rows_limit=rows_limit,
                     cache_scope=self._cache_scope,
@@ -87,7 +87,7 @@ class Pipe:
         if self._visualization_result is None or request != self._visualization_request:
             # TODO Cache visualization results as in Executor.execute()?
             stream = self._stream_plot if self._stream_plot is not None else self._default_stream_plot
-            self._visualization_result = self._session.visualizer.visualize(request, data, stream=stream)
+            self._visualization_result = self._agent.visualizer.visualize(request, data, stream=stream)
             self._visualization_request = request
             self._meta.update(self._visualization_result.meta)
             self._meta["plot_code"] = self._visualization_result.code  # maybe worth to expand as a property later

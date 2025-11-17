@@ -35,20 +35,20 @@ def test_demo_smoke(db_engine: Engine) -> None:
     assert df is not None
     assert len(df) > 0, "Expected to get some results from the database query"
 
-    # Step 2: Create databao session
-    session = databao.open_session("test_session")
-    assert session is not None
+    # Step 2: Create a databao agent
+    agent = databao.new_agent("test_agent")
+    assert agent is not None
 
-    # Step 3: Add database to session
-    session.add_db(db_engine)
+    # Step 3: Add database to agent
+    agent.add_db(db_engine)
 
-    # Step 4: Create and add DataFrame to session
+    # Step 4: Create and add DataFrame to agent
     data = {"show_id": ["s706", "s1032", "s1253"], "cancelled": [True, True, False]}
     df = pd.DataFrame(data)
-    session.add_df(df)
+    agent.add_df(df)
 
     # Step 5: Ask a question and get results
-    ask = session.thread().ask("count cancelled shows by directors")
+    ask = agent.thread().ask("count cancelled shows by directors")
     assert ask is not None
 
     # Step 6: Get DataFrame result
@@ -71,20 +71,20 @@ def test_consecutive_ask_calls(db_engine: Engine) -> None:
     # Configure logging
     logging.basicConfig(level=logging.INFO)
 
-    # Step 1: Create databao session
-    session = databao.open_session("test_consecutive_session")
-    assert session is not None
+    # Step 1: Create databao agent
+    agent = databao.new_agent("test_consecutive_agent")
+    assert agent is not None
 
-    # Step 2: Add database to session
-    session.add_db(db_engine)
+    # Step 2: Add database to agent
+    agent.add_db(db_engine)
 
-    # Step 3: Create and add DataFrame to session
+    # Step 3: Create and add DataFrame to agent
     data = {"show_id": ["s706", "s1032", "s1253"], "cancelled": [True, True, False]}
     df = pd.DataFrame(data)
-    session.add_df(df)
+    agent.add_df(df)
 
     # Step 4: First ask - count cancelled shows by directors
-    ask1 = session.thread().ask("count cancelled shows by directors")
+    ask1 = agent.thread().ask("count cancelled shows by directors")
     assert ask1 is not None
 
     # Step 5: Get text result from first ask

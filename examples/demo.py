@@ -24,14 +24,14 @@ print(df)
 # llm_config = LLMConfig.from_yaml("configs/qwen3-8b-ollama.yaml")  # Use a custom config file
 # llm_config = LLMConfigDirectory.QWEN3_8B_OLLAMA  # Use one of the preconfigured configs
 llm_config = None  # Omit the config to use the default config
-session = databao.open_session("my_session", llm_config=llm_config)
-session.add_db(engine)
+agent = databao.new_agent("my_agent", llm_config=llm_config)
+agent.add_db(engine)
 
 data = {"show_id": ["s706", "s1032", "s1253"], "cancelled": [True, True, False]}
 df = pd.DataFrame(data)
-session.add_df(df)
+agent.add_df(df)
 
-thread = session.thread()
+thread = agent.thread()
 thread.ask("count cancelled shows by directors")
 print(thread.text())
 print(f"\n```\n{thread.code()}\n```\n")

@@ -5,7 +5,7 @@ from databao.executors.lighthouse.executor import LighthouseExecutor
 from databao.visualizers.vega_chat import VegaChatVisualizer
 
 
-def open_session(
+def new_agent(
     name: str,
     *,
     llm_config: LLMConfig | None = None,
@@ -18,7 +18,7 @@ def open_session(
     default_lazy_threads: bool = False,
     default_auto_output_modality: bool = True,
 ) -> Agent:
-    """This is an entry point for users to open an agent.
+    """This is an entry point for users to create a new agent.
     Agent can't be modified after it's created. Only new data sources can be added.
     """
     llm_config = llm_config if llm_config else LLMConfigDirectory.DEFAULT
