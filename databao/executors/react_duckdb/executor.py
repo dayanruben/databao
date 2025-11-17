@@ -49,7 +49,7 @@ class ReactDuckDBExecutor(GraphExecutor):
 
     def execute(
         self,
-        session: Agent,
+        agent: Agent,
         opa: Opa,
         *,
         rows_limit: int = 100,
@@ -57,10 +57,10 @@ class ReactDuckDBExecutor(GraphExecutor):
         stream: bool = True,
     ) -> ExecutionResult:
         # Get or create graph (cached after first use)
-        compiled_graph = self._compiled_graph or self._create_graph(self._duckdb_connection, session.llm_config)
+        compiled_graph = self._compiled_graph or self._create_graph(self._duckdb_connection, agent.llm_config)
 
         # Process the opa and get messages
-        messages = self._process_opa(session, opa, cache_scope)
+        messages = self._process_opa(agent, opa, cache_scope)
 
         # Execute the graph
         init_state = {"messages": messages}
@@ -72,7 +72,7 @@ class ReactDuckDBExecutor(GraphExecutor):
 
         # Update message history
         final_messages = last_state.get("messages", [])
-        self._update_message_history(session, cache_scope, final_messages)
+        self._update_message_history(agent, cache_scope, final_messages)
 
         execution_result = ExecutionResult(text=answer.explanation, code=answer.sql, df=df, meta={})
 

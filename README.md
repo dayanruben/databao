@@ -36,7 +36,7 @@ engine = create_engine(
 ### 2) Open a databao agent and register sources
 
 ```python
-import databao 
+import databao
 from databao import LLMConfig
 
 # Option A - Local: install and run any compatible local LLM. For list of compatible models, see: "Local models" below 
@@ -44,7 +44,7 @@ from databao import LLMConfig
 
 # Option B - Cloud (requires an API key, e.g. OPENAI_API_KEY)
 llm_config = LLMConfig(name="gpt-4o-mini", temperature=0)
-agent = databao.open_session(name="demo", llm_config=llm_config)
+agent = databao.new_agent(name="demo", llm_config=llm_config)
 
 # Add your database to the agent
 agent.add_db(engine)
@@ -149,7 +149,7 @@ uv run pytest -v -m "not apikey"
 ### Project structure
 ```
 databao/
-  api.py                 # public entry: open_session(...)
+  api.py                 # public entry: new_agent(...)
   core/                  # Agent, Pipe, Executor, Visualizer abstractions
   agents/                # Lighthouse (default) and React-DuckDB agents
   duckdb/                # DuckDB integration and tools

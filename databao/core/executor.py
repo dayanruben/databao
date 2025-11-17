@@ -7,8 +7,8 @@ from pandas import DataFrame
 from pydantic import BaseModel, ConfigDict
 
 if TYPE_CHECKING:
+    from databao.core.agent import Agent
     from databao.core.opa import Opa
-    from databao.core.session import Agent
 
 
 class OutputModalityHints(BaseModel):
@@ -138,7 +138,7 @@ class Executor(ABC):
     @abstractmethod
     def execute(
         self,
-        session: "Agent",
+        agent: "Agent",
         opa: "Opa",
         *,
         rows_limit: int = 100,
@@ -148,7 +148,7 @@ class Executor(ABC):
         """Execute a single OPA within an agent.
 
         Args:
-            session: Active agent providing LLM, data connections, cache, etc.
+            agent: Active agent providing LLM, data connections, cache, etc.
             opa: User intent/query to process.
             rows_limit: Preferred row limit for data materialization (may be ignored by executors).
             cache_scope: Logical scope for caching per chat/thread.
