@@ -104,7 +104,7 @@ class LighthouseExecutor(GraphExecutor):
         # Update message history (excluding system message which we add dynamically)
         final_messages = last_state.get("messages", [])
         if final_messages:
-            new_messages = final_messages[len(cleaned_messages):]
+            new_messages = final_messages[len(cleaned_messages) :]
             all_messages = all_messages_with_system + new_messages
             all_messages_without_system = [msg for msg in all_messages if msg.type != "system"]
             if execution_result.meta.get("messages"):

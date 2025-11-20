@@ -31,7 +31,7 @@ class LLMConfig(BaseModel):
     """Cache system prompt with prompt caching. Only used for Anthropic models."""
     # TODO multi-turn prompt caching
 
-    max_tokens_before_cleaning = 10000
+    max_tokens_before_cleaning: int = 10000
     """Number of tokens to start history cleaning. Each Executor has it's own cleaning strategy."""
 
     timeout: int | None | Literal["auto"] = "auto"
