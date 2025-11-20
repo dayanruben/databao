@@ -42,26 +42,24 @@ Text:
     return AIMessage(content=text)
 
 
-def clean_tool_history(
-    all_messages: list[BaseMessage], token_limit: int, current_messages: list[BaseMessage] | None = None
-) -> list[BaseMessage]:
+def clean_tool_history(messages: list[BaseMessage], token_limit: int) -> list[BaseMessage]:
     """
     If message history exceeds token limit, truncates it.
     It removes all intermediate messages and changes a final AI message.
     The final message contains SQL, dataframe and text.
+    Specific for AgentState and ExecuteSubmit graph.
 
     Returns: messages ready to be sent to LLM.
     """
-    current_messages = current_messages or all_messages
-    if count_tokens_approximately(current_messages) < token_limit:
-        return current_messages
+    if count_tokens_approximately(messages) < token_limit:
+        return messages
 
     dfs: dict[str, dict[str, str]] = {}
     buffer = []
     result: list[BaseMessage] = []
-    for i in range(len(current_messages)):
-        buffer.append(current_messages[i])
-        curr_message = current_messages[i]
+    for i in range(len(messages)):
+        curr_message = messages[i]
+        buffer.append(curr_message)
         if isinstance(curr_message, AIMessage):
             # Fill `dfs` dict
             if curr_message.tool_calls:
