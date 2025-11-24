@@ -8,7 +8,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy import Connection, Engine
 
-from databao.core import Agent, ExecutionResult, Opa
+from databao.core import ExecutionResult, Opa
 from databao.core.executor import OutputModalityHints
 from databao.duckdb.utils import describe_duckdb_schema, get_db_path, register_sqlalchemy
 from databao.executors.base import GraphExecutor
@@ -32,11 +32,11 @@ class LighthouseExecutor(GraphExecutor):
         db_schema = describe_duckdb_schema(data_connection)
 
         context = ""
-        for db_name, db_context in self._agent.db_context.items():
+        for db_name, db_context in self.agent.db_context.items():
             context += f"## Context for DB {db_name}\n\n{db_context}\n\n"
-        for df_name, df_context in self._agent.df_context.items():
+        for df_name, df_context in self.agent.df_context.items():
             context += f"## Context for DF {df_name} (fully qualified name 'temp.main.{df_name}')\n\n{df_context}\n\n"
-        for idx, additional_ctx in enumerate(self._agent.additional_context, start=1):
+        for idx, additional_ctx in enumerate(self.agent.additional_context, start=1):
             additional_context = additional_ctx.strip()
             context += f"## General information {idx}\n\n{additional_context}\n\n"
         context = context.strip()
@@ -67,9 +67,9 @@ class LighthouseExecutor(GraphExecutor):
     def register_df(self, name: str, df: pd.DataFrame) -> None:
         self._duckdb_connection.register(name, df)
 
-    def _get_compiled_graph(self, agent: Agent) -> CompiledStateGraph[Any]:
+    def _get_compiled_graph(self) -> CompiledStateGraph[Any]:
         """Get compiled graph."""
-        compiled_graph = self._compiled_graph or self._graph.compile(agent.llm_config)
+        compiled_graph = self._compiled_graph or self._graph.compile(self.agent.llm_config)
         self._compiled_graph = compiled_graph
 
         return compiled_graph
@@ -82,7 +82,7 @@ class LighthouseExecutor(GraphExecutor):
         cache_scope: str = "common_cache",
         stream: bool = True,
     ) -> ExecutionResult:
-        compiled_graph = self._get_compiled_graph(self._agent)
+        compiled_graph = self._get_compiled_graph()
 
         messages = self._process_opa(opa, cache_scope)
 
@@ -93,7 +93,9 @@ class LighthouseExecutor(GraphExecutor):
                 SystemMessage(self.render_system_prompt(self._duckdb_connection)),
                 *all_messages_with_system,
             ]
-        cleaned_messages = clean_tool_history(all_messages_with_system, self._agent.llm_config.max_tokens_before_cleaning)
+        cleaned_messages = clean_tool_history(
+            all_messages_with_system, self.agent.llm_config.max_tokens_before_cleaning
+        )
 
         init_state = self._graph.init_state(cleaned_messages, limit_max_rows=rows_limit)
         invoke_config = RunnableConfig(recursion_limit=self._graph_recursion_limit)

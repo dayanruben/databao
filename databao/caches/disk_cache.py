@@ -1,6 +1,6 @@
 import json
+import pickle
 from dataclasses import dataclass
-from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -19,19 +19,20 @@ class DiskCache(Cache):
 
     def __init__(self, config: DiskCacheConfig | None = None, cache: diskcache.Cache | None = None, prefix: str = ""):
         self.config = config or DiskCacheConfig()
-        self._cache = cache or diskcache.Cache(str(self.config.db_dir))
+        self._cache: diskcache.Cache = cache or diskcache.Cache(str(self.config.db_dir))
         self._prefix = prefix
 
-    def put(self, key: str, source: BytesIO) -> None:
+    def put(self, key: str, state: dict[str, Any]) -> None:
         k = f"{self._prefix}{key}"
-        self.set_object(k, value=source.getvalue(), tag=self._prefix)
+        self._cache.set(k, value=pickle.dumps(state), tag=self._prefix)
 
-    def get(self, key: str, dest: BytesIO) -> None:
+    def get(self, key: str) -> dict[str, Any]:
         k = f"{self._prefix}{key}"
-        val = self.get_object(k, default=None)
-        if val is None:
-            raise KeyError(f"Key {key} not found in cache.")
-        dest.write(val)
+        res_bytes = self._cache.get(k, default=None)
+        if res_bytes is None:
+            return {}
+        result: dict[str, Any] = pickle.loads(res_bytes)
+        return result
 
     def scoped(self, scope: str) -> "DiskCache":
         return DiskCache(self.config, self._cache, prefix=f"{self._prefix}/{scope}/")
@@ -43,19 +44,6 @@ class DiskCache(Cache):
     def make_json_key(d: dict[str, Any]) -> str:
         # Keep the key human-readable at the cost of some cache size and performance.
         return json.dumps(d, sort_keys=True)
-
-    def set_object(self, key: str, value: Any, ttl_seconds: float | None = None, tag: str | None = None) -> None:
-        """Store a value of any type in the cache.
-
-        Simple types for value will be stored as-is, while complex types will be pickled.
-        Assign a tag to be able to delete by tag later.
-        """
-        # N.B. The key could also be pickled (it doesn't have to be a string), but it's better
-        # to force having string/int keys.
-        self._cache.set(key, value, expire=ttl_seconds, tag=tag)
-
-    def get_object(self, key: str, default: Any = None) -> Any:
-        return self._cache.get(key, default=default)
 
     def close(self) -> None:
         self._cache.close()

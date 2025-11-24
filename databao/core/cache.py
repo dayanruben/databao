@@ -14,9 +14,8 @@ class Cache(ABC):
     def get(self, key: str) -> dict[str, Any]:
         """Load cached state for a key.
 
-        Implementations may raise KeyError if the key is missing.
+        Returns empty dict if the key is missing.
         """
-        # TODO Raise KeyError if key not found. Need a "contains" method as well.
         raise NotImplementedError
 
     @abstractmethod
