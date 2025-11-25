@@ -1,15 +1,16 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from duckdb import DuckDBPyConnection
 from langchain_core.language_models.chat_models import BaseChatModel
 from pandas import DataFrame
 from sqlalchemy import Connection, Engine
 
-from databao.configs.llm import LLMConfig
+from databao.core.data_source import DBDataSource, DFDataSource
 from databao.core.thread import Thread
 
 if TYPE_CHECKING:
+    from databao.configs.llm import LLMConfig
     from databao.core.cache import Cache
     from databao.core.executor import Executor
     from databao.core.visualizer import Visualizer
@@ -23,7 +24,7 @@ class Agent:
 
     def __init__(
         self,
-        llm: LLMConfig,
+        llm: "LLMConfig",
         data_executor: "Executor",
         visualizer: "Visualizer",
         cache: "Cache",
@@ -39,15 +40,12 @@ class Agent:
         self.__llm = llm.new_chat_model()
         self.__llm_config = llm
 
-        self.__dbs: dict[str, Any] = {}
-        self.__dfs: dict[str, DataFrame] = {}
+        self.__dbs: dict[str, DBDataSource] = {}
+        self.__dfs: dict[str, DFDataSource] = {}
 
-        self.__db_context: dict[str, str] = {}
-        self.__df_context: dict[str, str] = {}
         self.__additional_context: list[str] = []
 
         self.__executor = data_executor
-        self.__executor.set_agent(self)
         self.__visualizer = visualizer
         self.__cache = cache
 
@@ -92,11 +90,11 @@ class Agent:
 
         conn_name = name or f"db{len(self.__dbs) + 1}"
 
-        self.__dbs[conn_name] = connection
-        self.executor.register_db(conn_name, connection)
+        context_text = self._parse_context_arg(context) or ""
 
-        if (context_text := self._parse_context_arg(context)) is not None:
-            self.__db_context[conn_name] = context_text
+        source = DBDataSource(name=conn_name, context=context_text, db_connection=connection)
+        self.__dbs[conn_name] = source
+        self.executor.register_db(source)
 
     def add_df(self, df: DataFrame, *, name: str | None = None, context: str | Path | None = None) -> None:
         """Register a DataFrame in this agent and in the agent's DuckDB.
@@ -107,12 +105,13 @@ class Agent:
             context: Optional text or path to a file describing this dataset for the LLM.
         """
         df_name = name or f"df{len(self.__dfs) + 1}"
-        self.__dfs[df_name] = df
 
-        self.executor.register_df(df_name, df)
+        context_text = self._parse_context_arg(context) or ""
 
-        if (context_text := self._parse_context_arg(context)) is not None:
-            self.__df_context[df_name] = context_text
+        source = DFDataSource(name=df_name, context=context_text, df=df)
+        self.__dfs[df_name] = source
+
+        self.executor.register_df(source)
 
     def add_context(self, context: str | Path) -> None:
         """Add additional context to help models understand your data.
@@ -151,11 +150,11 @@ class Agent:
         )
 
     @property
-    def dbs(self) -> dict[str, Any]:
+    def dbs(self) -> dict[str, DBDataSource]:
         return dict(self.__dbs)
 
     @property
-    def dfs(self) -> dict[str, DataFrame]:
+    def dfs(self) -> dict[str, DFDataSource]:
         return dict(self.__dfs)
 
     @property
@@ -167,7 +166,7 @@ class Agent:
         return self.__llm
 
     @property
-    def llm_config(self) -> LLMConfig:
+    def llm_config(self) -> "LLMConfig":
         return self.__llm_config
 
     @property
@@ -181,16 +180,6 @@ class Agent:
     @property
     def cache(self) -> "Cache":
         return self.__cache
-
-    @property
-    def db_context(self) -> dict[str, str]:
-        """Per-source natural-language context for DBs."""
-        return self.__db_context
-
-    @property
-    def df_context(self) -> dict[str, str]:
-        """Per-source natural-language context for DFs."""
-        return self.__df_context
 
     @property
     def additional_context(self) -> list[str]:

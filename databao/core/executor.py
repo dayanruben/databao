@@ -6,8 +6,11 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal
 from pandas import DataFrame
 from pydantic import BaseModel, ConfigDict
 
+from databao.core.data_source import DBDataSource, DFDataSource
+
 if TYPE_CHECKING:
-    from databao.core.agent import Agent
+    from databao import LLMConfig
+    from databao.core import Cache
     from databao.core.opa import Opa
 
 
@@ -135,25 +138,26 @@ class Executor(ABC):
     Methods:
         execute: Abstract method to execute a single OPA within an agent.
     """
+
     @abstractmethod
-    def set_agent(self, agent: "Agent") -> None:
+    def register_db(self, source: DBDataSource) -> None:
         pass
 
     @abstractmethod
-    def register_db(self, name: str, connection: Any) -> None:
-        pass
-
-    @abstractmethod
-    def register_df(self, name: str, df: DataFrame) -> None:
+    def register_df(self, source: DFDataSource) -> None:
         pass
 
     @abstractmethod
     def execute(
         self,
         opa: "Opa",
+        cache: "Cache",
+        llm_config: "LLMConfig",
+        db_sources: dict[str, DBDataSource],
+        df_sources: dict[str, DFDataSource],
+        additional_context: list[str],
         *,
         rows_limit: int = 100,
-        cache_scope: str = "common_cache",
         stream: bool = True,
     ) -> ExecutionResult:
         """Execute a single OPA within an agent.

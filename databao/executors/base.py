@@ -5,8 +5,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
 
-from databao.configs.llm import LLMConfig
-from databao.core.agent import Agent
+from databao.core import Cache
 from databao.core.executor import ExecutionResult, Executor, OutputModalityHints
 from databao.core.opa import Opa
 from databao.executors.frontend.text_frontend import TextStreamFrontend
@@ -25,37 +24,23 @@ class GraphExecutor(Executor, ABC):
 
     def __init__(self) -> None:
         """Initialize agent with graph caching infrastructure."""
-        self._agent: Agent | None = None
         self._graph_recursion_limit = 50
 
-    def set_agent(self, agent: Agent) -> None:
-        self._agent = agent
-
-    @property
-    def agent(self) -> Agent:
-        if self._agent is None:
-            raise ValueError("Agent not set")
-        return self._agent
-
-    def _get_llm_config(self) -> LLMConfig:
-        """Get LLM config from agent."""
-        return self.agent.llm_config
-
-    def _process_opa(self, opa: Opa, cache_scope: str) -> list[Any]:
+    def _process_opa(self, opa: Opa, cache: Cache) -> list[Any]:
         """
         Process a single opa and convert it to a message, appending to message history.
 
         Returns:
             All messages including the new one
         """
-        messages: list[Any] = self.agent.cache.scoped(cache_scope).get("state").get("messages", [])
+        messages: list[Any] = cache.get("state").get("messages", [])
         messages.append(HumanMessage(content=opa.query))
         return messages
 
-    def _update_message_history(self, cache_scope: str, final_messages: list[Any]) -> None:
+    def _update_message_history(self, cache: Cache, final_messages: list[Any]) -> None:
         """Update message history in cache with final messages from graph execution."""
         if final_messages:
-            self.agent.cache.scoped(cache_scope).put("state", {"messages": final_messages})
+            cache.put("state", {"messages": final_messages})
 
     def _make_output_modality_hints(self, result: ExecutionResult) -> OutputModalityHints:
         # A separate LLM module could be used to fill out the hints

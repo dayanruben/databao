@@ -2,13 +2,14 @@ from pathlib import Path
 from typing import Any
 
 import duckdb
-import pandas as pd
 from langchain_core.messages import SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy import Connection, Engine
 
-from databao.core import ExecutionResult, Opa
+from databao.configs import LLMConfig
+from databao.core import Cache, ExecutionResult, Opa
+from databao.core.data_source import DBDataSource, DFDataSource
 from databao.core.executor import OutputModalityHints
 from databao.duckdb.utils import describe_duckdb_schema, get_db_path, register_sqlalchemy
 from databao.executors.base import GraphExecutor
@@ -27,18 +28,27 @@ class LighthouseExecutor(GraphExecutor):
         self._graph: ExecuteSubmit = ExecuteSubmit(self._duckdb_connection)
         self._compiled_graph: CompiledStateGraph[Any] | None = None
 
-    def render_system_prompt(self, data_connection: Any) -> str:
+    def render_system_prompt(
+        self,
+        data_connection: Any,
+        dfs: dict[str, DFDataSource],
+        dbs: dict[str, DBDataSource],
+        additional_context: list[str],
+    ) -> str:
         """Render system prompt with database schema."""
         db_schema = describe_duckdb_schema(data_connection)
 
         context = ""
-        for db_name, db_context in self.agent.db_context.items():
-            context += f"## Context for DB {db_name}\n\n{db_context}\n\n"
-        for df_name, df_context in self.agent.df_context.items():
-            context += f"## Context for DF {df_name} (fully qualified name 'temp.main.{df_name}')\n\n{df_context}\n\n"
-        for idx, additional_ctx in enumerate(self.agent.additional_context, start=1):
-            additional_context = additional_ctx.strip()
-            context += f"## General information {idx}\n\n{additional_context}\n\n"
+        for db_name, source in dbs.items():
+            if source.context:
+                context += f"## Context for DB {db_name}\n\n{source.context}\n\n"
+        for df_name, source in dfs.items():
+            if source.context:
+                context += (
+                    f"## Context for DF {df_name} (fully qualified name 'temp.main.{df_name}')\n\n{source.context}\n\n"
+                )
+        for idx, add_ctx in enumerate(additional_context, start=1):
+            context += f"## General information {idx}\n\n{add_ctx.strip()}\n\n"
         context = context.strip()
 
         prompt = self._prompt_template.render(
@@ -47,8 +57,9 @@ class LighthouseExecutor(GraphExecutor):
 
         return prompt.strip()
 
-    def register_db(self, name: str, connection: duckdb.DuckDBPyConnection | Connection | Engine) -> None:
+    def register_db(self, source: DBDataSource) -> None:
         """Register DB in the DuckDB connection."""
+        connection = source.db_connection
         if isinstance(connection, Connection):
             connection = connection.engine
 
@@ -56,20 +67,20 @@ class LighthouseExecutor(GraphExecutor):
             path = get_db_path(connection)
             if path is not None:
                 connection.close()
-                self._duckdb_connection.execute(f"ATTACH '{path}' AS {name}")
+                self._duckdb_connection.execute(f"ATTACH '{path}' AS {source.name} (READ_ONLY)")
             else:
                 raise RuntimeError("Memory-based DuckDB is not supported.")
         elif isinstance(connection, Engine):
-            register_sqlalchemy(self._duckdb_connection, connection, name)
+            register_sqlalchemy(self._duckdb_connection, connection, source.name)
         else:
             raise ValueError("Only DuckDB or SQLAlchemy connections are supported.")
 
-    def register_df(self, name: str, df: pd.DataFrame) -> None:
-        self._duckdb_connection.register(name, df)
+    def register_df(self, source: DFDataSource) -> None:
+        self._duckdb_connection.register(source.name, source.df)
 
-    def _get_compiled_graph(self) -> CompiledStateGraph[Any]:
+    def _get_compiled_graph(self, llm_config: LLMConfig) -> CompiledStateGraph[Any]:
         """Get compiled graph."""
-        compiled_graph = self._compiled_graph or self._graph.compile(self.agent.llm_config)
+        compiled_graph = self._compiled_graph or self._graph.compile(llm_config)
         self._compiled_graph = compiled_graph
 
         return compiled_graph
@@ -77,25 +88,29 @@ class LighthouseExecutor(GraphExecutor):
     def execute(
         self,
         opa: Opa,
+        cache: Cache,
+        llm_config: LLMConfig,
+        db_sources: dict[str, DBDataSource],
+        df_sources: dict[str, DFDataSource],
+        additional_context: list[str],
         *,
         rows_limit: int = 100,
-        cache_scope: str = "common_cache",
         stream: bool = True,
     ) -> ExecutionResult:
-        compiled_graph = self._get_compiled_graph()
+        compiled_graph = self._get_compiled_graph(llm_config)
 
-        messages = self._process_opa(opa, cache_scope)
+        messages = self._process_opa(opa, cache)
 
         # Prepend system message if not present
         all_messages_with_system = messages
         if not all_messages_with_system or all_messages_with_system[0].type != "system":
             all_messages_with_system = [
-                SystemMessage(self.render_system_prompt(self._duckdb_connection)),
+                SystemMessage(
+                    self.render_system_prompt(self._duckdb_connection, df_sources, db_sources, additional_context)
+                ),
                 *all_messages_with_system,
             ]
-        cleaned_messages = clean_tool_history(
-            all_messages_with_system, self.agent.llm_config.max_tokens_before_cleaning
-        )
+        cleaned_messages = clean_tool_history(all_messages_with_system, llm_config.max_tokens_before_cleaning)
 
         init_state = self._graph.init_state(cleaned_messages, limit_max_rows=rows_limit)
         invoke_config = RunnableConfig(recursion_limit=self._graph_recursion_limit)
@@ -110,7 +125,7 @@ class LighthouseExecutor(GraphExecutor):
             all_messages_without_system = [msg for msg in all_messages if msg.type != "system"]
             if execution_result.meta.get("messages"):
                 execution_result.meta["messages"] = all_messages
-            self._update_message_history(cache_scope, all_messages_without_system)
+            self._update_message_history(cache, all_messages_without_system)
 
         # Set modality hints
         execution_result.meta[OutputModalityHints.META_KEY] = self._make_output_modality_hints(execution_result)

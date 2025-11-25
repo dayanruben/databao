@@ -69,8 +69,12 @@ class Thread:
             for opa in new_opas:
                 self._data_result = self._agent.executor.execute(
                     opa,
+                    cache=self._agent.cache.scoped(self._cache_scope),
+                    llm_config=self._agent.llm_config,
+                    db_sources=self._agent.dbs,
+                    df_sources=self._agent.dfs,
+                    additional_context=self._agent.additional_context,
                     rows_limit=rows_limit,
-                    cache_scope=self._cache_scope,
                     stream=stream,
                 )
                 self._meta.update(self._data_result.meta)
