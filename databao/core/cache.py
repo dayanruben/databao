@@ -11,10 +11,10 @@ class Cache(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get(self, key: str) -> dict[str, Any]:
+    def get(self, key: str, default: dict[str, Any] = None) -> dict[str, Any]:
         """Load cached state for a key.
 
-        Returns empty dict if the key is missing.
+        Returns default value if the key is missing.
         """
         raise NotImplementedError
 

@@ -33,7 +33,7 @@ class GraphExecutor(Executor, ABC):
         Returns:
             All messages including the new one
         """
-        messages: list[Any] = cache.get("state").get("messages", [])
+        messages: list[Any] = cache.get("state", {}).get("messages", [])
         messages.append(HumanMessage(content=opa.query))
         return messages
 

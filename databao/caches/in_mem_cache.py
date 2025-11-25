@@ -17,9 +17,9 @@ class InMemCache(Cache):
         """Store bytes under the current scope/prefix."""
         self._cache[self._prefix + key] = state
 
-    def get(self, key: str) -> dict[str, Any]:
+    def get(self, key: str, default: dict[str, Any] = None) -> dict[str, Any]:
         """Write cached state for key."""
-        return self._cache.get(self._prefix + key, {})
+        return self._cache.get(self._prefix + key, default)
 
     def scoped(self, scope: str) -> Cache:
         """Return a view of this cache with an additional scope prefix."""

@@ -164,8 +164,9 @@ class Executor(ABC):
 
         Args:
             opa: User intent/query to process.
+            cache: Cache provided by Agent to persist State.
+            llm_config: Config of LLM to be used during execution.
             rows_limit: Preferred row limit for data materialization (may be ignored by executors).
-            cache_scope: Logical scope for caching per chat/thread.
             stream: Stream LLM output to stdout.
         """
         pass
