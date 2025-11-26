@@ -18,10 +18,10 @@ def test_set_and_get(cache: DiskCache) -> None:
     df = pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
 
     key = DiskCache.make_json_key({"sql": sql_text, "source": source})
-    cache.set_object(key, df, tag=source)
-    cached_df = cache.get_object(key, default=None)
+    cache.put(key, {"df": df})
+    cached_df = cache.get(key)
     assert cached_df is not None
-    pd.testing.assert_frame_equal(df, cached_df)
+    pd.testing.assert_frame_equal(df, cached_df["df"])
 
 
 def test_set_and_get_empty(cache: DiskCache) -> None:
@@ -30,10 +30,10 @@ def test_set_and_get_empty(cache: DiskCache) -> None:
     df = pd.DataFrame({"": [1, 2, 3]})
 
     key = DiskCache.make_json_key({"sql": sql_text, "source": source})
-    cache.set_object(key, df, tag=source)
-    cached_df = cache.get_object(key, default=None)
+    cache.put(key, {"df": df})
+    cached_df = cache.get(key)
     assert cached_df is not None
-    pd.testing.assert_frame_equal(df, cached_df)
+    pd.testing.assert_frame_equal(df, cached_df["df"])
 
 
 def test_set_and_get_empty_duplicates(cache: DiskCache) -> None:
@@ -42,18 +42,18 @@ def test_set_and_get_empty_duplicates(cache: DiskCache) -> None:
     df = pd.DataFrame.from_records([(1, 2, 3), (4, 5, 6)], columns=["", "", "a"])
 
     key = DiskCache.make_json_key({"sql": sql_text, "source": source})
-    cache.set_object(key, df, tag=source)
-    cached_df = cache.get_object(key, default=None)
+    cache.put(key, {"df": df})
+    cached_df = cache.get(key)
     assert cached_df is not None
-    pd.testing.assert_frame_equal(df, cached_df)
+    pd.testing.assert_frame_equal(df, cached_df["df"])
 
 
 def test_get_with_no_match(cache: DiskCache) -> None:
     sql_text = "SELECT * FROM nonexistent_table"
     source = "nonexistent_source"
     key = DiskCache.make_json_key({"sql": sql_text, "source": source})
-    cached_df = cache.get_object(key, default=None)
-    assert cached_df is None
+    cached_df = cache.get(key)
+    assert cached_df == {}
 
 
 def test_invalidate_tag_no_match(cache: DiskCache) -> None:

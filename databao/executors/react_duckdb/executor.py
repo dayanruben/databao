@@ -2,13 +2,13 @@ import logging
 from typing import Any
 
 import duckdb
-import pandas as pd
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
-from sqlalchemy import Engine
+from sqlalchemy import Connection, Engine
 
 from databao.configs.llm import LLMConfig
-from databao.core import Agent, ExecutionResult, Opa
+from databao.core import Cache, ExecutionResult, Opa
+from databao.core.data_source import DBDataSource, DFDataSource, Sources
 from databao.core.executor import OutputModalityHints
 from databao.duckdb import register_sqlalchemy
 from databao.duckdb.react_tools import AgentResponse, execute_duckdb_sql, make_react_duckdb_agent
@@ -29,38 +29,42 @@ class ReactDuckDBExecutor(GraphExecutor):
         """Create and compile the ReAct DuckDB agent graph."""
         return make_react_duckdb_agent(data_connection, llm_config.new_chat_model())
 
-    def register_db(self, name: str, connection: Any) -> None:
+    def register_db(self, source: DBDataSource) -> None:
         """Register DB in the DuckDB connection."""
+        connection = source.db_connection
+        if isinstance(connection, Connection):
+            connection = connection.engine
 
         if isinstance(connection, duckdb.DuckDBPyConnection):
             path = get_db_path(connection)
             if path is not None:
                 connection.close()
-                self._duckdb_connection.execute(f"ATTACH '{path}' AS {name}")
+                self._duckdb_connection.execute(f"ATTACH '{path}' AS {source.name}")
             else:
                 raise RuntimeError("Memory-based DuckDB is not supported.")
         elif isinstance(connection, Engine):
-            register_sqlalchemy(self._duckdb_connection, connection, name)
+            register_sqlalchemy(self._duckdb_connection, connection, source.name)
         else:
             raise ValueError("Only DuckDB or SQLAlchemy connections are supported.")
 
-    def register_df(self, name: str, df: pd.DataFrame) -> None:
-        self._duckdb_connection.register(name, df)
+    def register_df(self, source: DFDataSource) -> None:
+        self._duckdb_connection.register(source.name, source.df)
 
     def execute(
         self,
-        agent: Agent,
         opa: Opa,
+        cache: Cache,
+        llm_config: LLMConfig,
+        sources: Sources,
         *,
         rows_limit: int = 100,
-        cache_scope: str = "common_cache",
         stream: bool = True,
     ) -> ExecutionResult:
         # Get or create graph (cached after first use)
-        compiled_graph = self._compiled_graph or self._create_graph(self._duckdb_connection, agent.llm_config)
+        compiled_graph = self._compiled_graph or self._create_graph(self._duckdb_connection, llm_config)
 
         # Process the opa and get messages
-        messages = self._process_opa(agent, opa, cache_scope)
+        messages = self._process_opa(opa, cache)
 
         # Execute the graph
         init_state = {"messages": messages}
@@ -72,7 +76,7 @@ class ReactDuckDBExecutor(GraphExecutor):
 
         # Update message history
         final_messages = last_state.get("messages", [])
-        self._update_message_history(agent, cache_scope, final_messages)
+        self._update_message_history(cache, final_messages)
 
         execution_result = ExecutionResult(text=answer.explanation, code=answer.sql, df=df, meta={})
 

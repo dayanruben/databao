@@ -68,10 +68,11 @@ class Thread:
             stream = self._stream_ask if self._stream_ask is not None else self._default_stream_ask
             for opa in new_opas:
                 self._data_result = self._agent.executor.execute(
-                    self._agent,
                     opa,
+                    cache=self._agent.cache.scoped(self._cache_scope),
+                    llm_config=self._agent.llm_config,
+                    sources=self._agent.sources,
                     rows_limit=rows_limit,
-                    cache_scope=self._cache_scope,
                     stream=stream,
                 )
                 self._meta.update(self._data_result.meta)

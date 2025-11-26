@@ -1,22 +1,21 @@
 from abc import ABC, abstractmethod
-from io import BytesIO
+from typing import Any
 
 
 class Cache(ABC):
-    """Simple byte-oriented cache interface with optional scoping."""
+    """Simple State cache interface with optional scoping."""
 
     @abstractmethod
-    def put(self, key: str, source: BytesIO) -> None:
-        """Store bytes for a key from the given buffer."""
+    def put(self, key: str, state: dict[str, Any]) -> None:
+        """Store state for a key."""
         raise NotImplementedError
 
     @abstractmethod
-    def get(self, key: str, dest: BytesIO) -> None:
-        """Load bytes for a key into the provided buffer.
+    def get(self, key: str, default: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Load cached state for a key.
 
-        Implementations may raise KeyError if the key is missing.
+        Returns default value if the key is missing.
         """
-        # TODO Raise KeyError if key not found. Need a "contains" method as well.
         raise NotImplementedError
 
     @abstractmethod

@@ -6,8 +6,11 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal
 from pandas import DataFrame
 from pydantic import BaseModel, ConfigDict
 
+from databao.core.data_source import DBDataSource, DFDataSource, Sources
+
 if TYPE_CHECKING:
-    from databao.core.agent import Agent
+    from databao import LLMConfig
+    from databao.core import Cache
     from databao.core.opa import Opa
 
 
@@ -137,30 +140,32 @@ class Executor(ABC):
     """
 
     @abstractmethod
-    def register_db(self, name: str, connection: Any) -> None:
+    def register_db(self, source: DBDataSource) -> None:
         pass
 
     @abstractmethod
-    def register_df(self, name: str, df: DataFrame) -> None:
+    def register_df(self, source: DFDataSource) -> None:
         pass
 
     @abstractmethod
     def execute(
         self,
-        agent: "Agent",
         opa: "Opa",
+        cache: "Cache",
+        llm_config: "LLMConfig",
+        sources: Sources,
         *,
         rows_limit: int = 100,
-        cache_scope: str = "common_cache",
         stream: bool = True,
     ) -> ExecutionResult:
         """Execute a single OPA within an agent.
 
         Args:
-            agent: Active agent providing LLM, data connections, cache, etc.
             opa: User intent/query to process.
+            cache: Cache provided by Agent to persist State.
+            llm_config: Config of LLM to be used during execution.
+            sources: Data sources registered with the agent.
             rows_limit: Preferred row limit for data materialization (may be ignored by executors).
-            cache_scope: Logical scope for caching per chat/thread.
             stream: Stream LLM output to stdout.
         """
         pass

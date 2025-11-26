@@ -44,8 +44,8 @@ def test_add_db_with_temp_file_context(temp_context_file: Path, duckdb_conn: duc
     agent = _new_agent()
     agent.add_db(duckdb_conn, context=temp_context_file)
 
-    assert "db1" in agent.db_context
-    assert agent.db_context["db1"] == temp_context_file.read_text()
+    assert "db1" in agent.dbs
+    assert agent.dbs["db1"].context == temp_context_file.read_text()
 
 
 def test_add_df_with_temp_file_context(temp_context_file: Path) -> None:
@@ -54,8 +54,8 @@ def test_add_df_with_temp_file_context(temp_context_file: Path) -> None:
     agent = _new_agent()
     agent.add_df(df, context=temp_context_file)
 
-    assert "df1" in agent.df_context
-    assert agent.df_context["df1"] == temp_context_file.read_text()
+    assert "df1" in agent.dfs
+    assert agent.dfs["df1"].context == temp_context_file.read_text()
 
 
 def test_add_db_with_string_context(duckdb_conn: duckdb.DuckDBPyConnection) -> None:
@@ -64,8 +64,8 @@ def test_add_db_with_string_context(duckdb_conn: duckdb.DuckDBPyConnection) -> N
     context_string = "This is a string context for the database."
     agent.add_db(duckdb_conn, context=context_string)
 
-    assert "db1" in agent.db_context
-    assert agent.db_context["db1"] == context_string
+    assert "db1" in agent.dbs
+    assert agent.dbs["db1"].context == context_string
 
 
 def test_add_df_with_string_context() -> None:
@@ -75,8 +75,8 @@ def test_add_df_with_string_context() -> None:
     context_string = "This is a string context for the DataFrame."
     agent.add_df(df, context=context_string)
 
-    assert "df1" in agent.df_context
-    assert agent.df_context["df1"] == context_string
+    assert "df1" in agent.dfs
+    assert agent.dfs["df1"].context == context_string
 
 
 def test_add_additional_context_with_nonexistent_path_raises() -> None:
