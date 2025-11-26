@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import duckdb
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy import Connection, Engine

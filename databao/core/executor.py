@@ -8,11 +8,9 @@ from pydantic import BaseModel, ConfigDict
 
 from databao.core.data_source import DBDataSource, DFDataSource, Sources
 
-from databao.core import Cache
-
 if TYPE_CHECKING:
     from databao import LLMConfig
-    from databao.core import Cache
+    from databao.core.cache import Cache
     from databao.core.opa import Opa
 
 
@@ -150,7 +148,7 @@ class Executor(ABC):
         pass
 
     @abstractmethod
-    def drop_last_opa(self, cache: Cache, n: int = 1) -> None:
+    def drop_last_opa(self, cache: "Cache", n: int = 1) -> None:
         pass
 
     @abstractmethod
