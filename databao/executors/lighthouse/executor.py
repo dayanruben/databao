@@ -9,7 +9,7 @@ from sqlalchemy import Connection, Engine
 
 from databao.configs import LLMConfig
 from databao.core import Cache, ExecutionResult, Opa
-from databao.core.data_source import DBDataSource, DFDataSource
+from databao.core.data_source import DBDataSource, DFDataSource, Sources
 from databao.core.executor import OutputModalityHints
 from databao.duckdb.utils import describe_duckdb_schema, get_db_path, register_sqlalchemy
 from databao.executors.base import GraphExecutor
@@ -31,23 +31,21 @@ class LighthouseExecutor(GraphExecutor):
     def render_system_prompt(
         self,
         data_connection: Any,
-        dfs: dict[str, DFDataSource],
-        dbs: dict[str, DBDataSource],
-        additional_context: list[str],
+        sources: Sources,
     ) -> str:
         """Render system prompt with database schema."""
         db_schema = describe_duckdb_schema(data_connection)
 
         context = ""
-        for db_name, source in dbs.items():
+        for db_name, source in sources.dbs.items():
             if source.context:
                 context += f"## Context for DB {db_name}\n\n{source.context}\n\n"
-        for df_name, source in dfs.items():
+        for df_name, source in sources.dfs.items():
             if source.context:
                 context += (
                     f"## Context for DF {df_name} (fully qualified name 'temp.main.{df_name}')\n\n{source.context}\n\n"
                 )
-        for idx, add_ctx in enumerate(additional_context, start=1):
+        for idx, add_ctx in enumerate(sources.additional_context, start=1):
             context += f"## General information {idx}\n\n{add_ctx.strip()}\n\n"
         context = context.strip()
 
@@ -90,9 +88,7 @@ class LighthouseExecutor(GraphExecutor):
         opa: Opa,
         cache: Cache,
         llm_config: LLMConfig,
-        db_sources: dict[str, DBDataSource],
-        df_sources: dict[str, DFDataSource],
-        additional_context: list[str],
+        sources: Sources,
         *,
         rows_limit: int = 100,
         stream: bool = True,
@@ -105,9 +101,7 @@ class LighthouseExecutor(GraphExecutor):
         all_messages_with_system = messages
         if not all_messages_with_system or all_messages_with_system[0].type != "system":
             all_messages_with_system = [
-                SystemMessage(
-                    self.render_system_prompt(self._duckdb_connection, df_sources, db_sources, additional_context)
-                ),
+                SystemMessage(self.render_system_prompt(self._duckdb_connection, sources)),
                 *all_messages_with_system,
             ]
         cleaned_messages = clean_tool_history(all_messages_with_system, llm_config.max_tokens_before_cleaning)

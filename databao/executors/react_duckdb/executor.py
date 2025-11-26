@@ -8,7 +8,7 @@ from sqlalchemy import Connection, Engine
 
 from databao.configs.llm import LLMConfig
 from databao.core import Cache, ExecutionResult, Opa
-from databao.core.data_source import DBDataSource, DFDataSource
+from databao.core.data_source import DBDataSource, DFDataSource, Sources
 from databao.core.executor import OutputModalityHints
 from databao.duckdb import register_sqlalchemy
 from databao.duckdb.react_tools import AgentResponse, execute_duckdb_sql, make_react_duckdb_agent
@@ -55,9 +55,7 @@ class ReactDuckDBExecutor(GraphExecutor):
         opa: Opa,
         cache: Cache,
         llm_config: LLMConfig,
-        db_sources: dict[str, DBDataSource],
-        df_sources: dict[str, DFDataSource],
-        additional_context: list[str],
+        sources: Sources,
         *,
         rows_limit: int = 100,
         stream: bool = True,

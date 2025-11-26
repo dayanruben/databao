@@ -19,3 +19,10 @@ class DFDataSource(DataSource):
 @dataclass
 class DBDataSource(DataSource):
     db_connection: DuckDBPyConnection | Engine | Connection
+
+
+@dataclass
+class Sources:
+    dfs: dict[str, DFDataSource]
+    dbs: dict[str, DBDataSource]
+    additional_context: list[str]

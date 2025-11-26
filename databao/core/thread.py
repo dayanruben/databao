@@ -71,9 +71,7 @@ class Thread:
                     opa,
                     cache=self._agent.cache.scoped(self._cache_scope),
                     llm_config=self._agent.llm_config,
-                    db_sources=self._agent.dbs,
-                    df_sources=self._agent.dfs,
-                    additional_context=self._agent.additional_context,
+                    sources=self._agent.sources,
                     rows_limit=rows_limit,
                     stream=stream,
                 )
