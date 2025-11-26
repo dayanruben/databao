@@ -29,7 +29,8 @@ dependencies = [
 ]
 
 [project.urls]
-repository = "https://github.com/JetBrains/databao"
+Homepage = "https://databao.app/"
+Source = "https://github.com/JetBrains/databao"
 
 [project.optional-dependencies]
 examples = [
