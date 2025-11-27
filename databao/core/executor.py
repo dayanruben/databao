@@ -10,7 +10,7 @@ from databao.core.data_source import DBDataSource, DFDataSource, Sources
 
 if TYPE_CHECKING:
     from databao import LLMConfig
-    from databao.core import Cache
+    from databao.core.cache import Cache
     from databao.core.opa import Opa
 
 
@@ -145,6 +145,10 @@ class Executor(ABC):
 
     @abstractmethod
     def register_df(self, source: DFDataSource) -> None:
+        pass
+
+    @abstractmethod
+    def drop_last_opa(self, cache: "Cache", n: int = 1) -> None:
         pass
 
     @abstractmethod
