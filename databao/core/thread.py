@@ -168,7 +168,7 @@ class Thread:
 
         return self
 
-    def drop_last_opa(self, n: int = 1) -> None:
+    def drop(self, n: int = 1) -> None:
         """Remove N last user queries from this thread along with the answer it produced."""
         if len(self._opas) >= n:
             self._opas = self._opas[:-n]
