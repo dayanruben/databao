@@ -55,6 +55,8 @@ class Thread:
 
         self._opas_processed_count: int = 0
         self._opas: list[list[Opa]] = []
+        """Opas are grouped. Each group is processed independently."""
+
         self._meta: dict[str, Any] = {}
 
         # A unique cache scope so executors can store per-thread state (e.g., message history)
@@ -157,6 +159,7 @@ class Thread:
             assert self._lazy_mode
             self._opas[-1].append(Opa(query=query))
         else:
+            # Add new Opa group
             self._opas.append([Opa(query=query)])
 
         # Invalidate old results so they are not used by repr methods
