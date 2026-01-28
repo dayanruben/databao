@@ -49,6 +49,12 @@ class LLMConfig(BaseModel):
     model_kwargs: dict[str, Any] = Field(default_factory=dict)
     """Additional kwargs for the model constructor."""
 
+    agent_recursion_limit: int = 50
+    """Maximum recursion depth for LLM agent execution."""
+
+    parallel_tool_calls: bool = True
+    """Whether agent is allowed to call several tools in one response."""
+
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     def _resolve_timeout(self) -> float | None:
@@ -101,6 +107,12 @@ class LLMConfig(BaseModel):
             )
         elif provider == "anthropic":
             from langchain_anthropic import ChatAnthropic
+
+            if "ANTHROPIC_API_KEY" not in os.environ:
+                if "api_key" in self.model_kwargs:
+                    os.environ["ANTHROPIC_API_KEY"] = self.model_kwargs["api_key"]
+                else:
+                    raise ValueError("ANTHROPIC_API_KEY environment variable not set.")
 
             return ChatAnthropic(
                 model_name=name,
@@ -176,7 +188,16 @@ class LLMConfigDirectory:
     def list_all(cls) -> list[LLMConfig]:
         return [config for name, config in vars(cls).items() if name.isupper()]
 
-    DEFAULT = LLMConfig(name="gpt-4o-mini")
+    DEFAULT = LLMConfig(name="claude-sonnet-4-5")
+
+    GPT_OSS_20B = LLMConfig(
+        name="ollama:gpt-oss:20b",
+        temperature=0.8,
+        use_responses_api=False,
+        timeout=600,
+    )
+
+    DEFAULT_LOCAL = GPT_OSS_20B
 
     # https://huggingface.co/Qwen/Qwen3-8B-GGUF#best-practices
     QWEN3_8B_OAI = LLMConfig(
